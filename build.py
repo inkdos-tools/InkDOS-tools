@@ -11,6 +11,8 @@ Nothing is rewritten beyond what is needed to serve it from a sub-path and witho
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import json
 import os
 import re
@@ -351,6 +353,34 @@ BUILDERS = {
 }
 
 
+# Every page gets a Content-Security-Policy (GitHub Pages cannot send headers, so a <meta> first in <head>):
+# the tools run entirely in the browser, so nothing may be fetched from or sent to another site. Inline
+# scripts are allowed only by their exact hash; WebAssembly is allowed, eval() is not. Audited per tool
+# (each one used under this policy without violations): ArchiveDrop, BentoPDF, CyberChef, IT-Tools,
+# Pyodide, WebODF and pnk.
+CSP_BASE = ("default-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self' data:",
+            "connect-src 'self' data: blob:", "worker-src 'self' blob:", "frame-src 'self' blob:", "media-src 'self' data: blob:",
+            "object-src 'none'", "base-uri 'self'", "form-action 'none'")
+INLINE_SCRIPT = re.compile(r'<script(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script>', re.S | re.I)
+CSP_META = re.compile(r'<meta http-equiv="Content-Security-Policy" content="[^"]*" data-inkdos-tools>')
+
+
+def page_csp(html: str) -> str:
+    hashes = sorted({"'sha256-" + base64.b64encode(hashlib.sha256(body.encode('utf-8')).digest()).decode() + "'"
+                     for body in INLINE_SCRIPT.findall(html)})
+    script = " ".join(["script-src 'self' 'wasm-unsafe-eval'", *hashes])
+    return "; ".join((CSP_BASE[0], script, *CSP_BASE[1:]))
+
+
+def add_csp(page: Path) -> None:
+    text = CSP_META.sub('', page.read_text(encoding='utf-8'))
+    # first thing in <head>; a page without one (e.g. a test page inside a vendored package) gets it at the
+    # start, where the parser opens the head implicitly
+    at = re.search(r'<head[^>]*>', text, re.I) or re.match(r'\s*(<!doctype[^>]*>\s*)?(<html[^>]*>)?', text, re.I)
+    meta = f'<meta http-equiv="Content-Security-Policy" content="{page_csp(text)}" data-inkdos-tools>'
+    page.write_text(text[:at.end()] + meta + text[at.end():], encoding='utf-8')
+
+
 def write_index(out: Path, tools: list[dict]) -> None:
     listing = [{k: t[k] for k in ('id', 'name', 'title', 'group', 'description', 'repo', 'license')} | {'href': f"{t['id']}/"}
                for t in tools]
@@ -370,7 +400,7 @@ def write_index(out: Path, tools: list[dict]) -> None:
     # history routing, e.g. IT-Tools) back to that tool's start page instead of a dead end
     ids = json.dumps([t['id'] for t in tools])
     (out / '404.html').write_text(
-        '<!doctype html><meta charset="utf-8"><title>InkDOS tools</title>\n'
+        '<!doctype html><head><meta charset="utf-8"><title>InkDOS tools</title></head>\n'
         f'<script>(function(){{var base={json.dumps(BASE)},ids={ids},rest=location.pathname.indexOf(base)===0?'
         'location.pathname.slice(base.length):"",id=rest.split("/")[0];'
         'location.replace(base+(ids.indexOf(id)>=0?id+"/":""))})()</script>\n', encoding='utf-8')
@@ -403,6 +433,9 @@ def main() -> None:
             sys.exit(f"{tool['id']}: build produced no index.html")
         print(f"built {tool['id']}", flush=True)
     write_index(out, [t for t in MANIFEST['tools'] if (out / t['id'] / 'index.html').exists()])
+    # last step, after every page edit above: the policy carries the hashes of the final inline scripts
+    for page in [out / 'index.html', out / '404.html', *(p for t in tools for p in (out / t['id']).rglob('*.html'))]:
+        add_csp(page)
 
 
 if __name__ == '__main__':
