@@ -68,6 +68,16 @@ def patch(file: Path, edits: list[tuple[str, str]]) -> None:
     file.write_text(text, encoding='utf-8')
 
 
+def follow_inkdos_theme(page: Path, tool_id: str) -> None:
+    """Load site-src/viewers/tool-theme.js first, so the tool starts in the InkDOS light/dark appearance."""
+    text = page.read_text(encoding='utf-8')
+    tag = f'<script src="../viewers/tool-theme.js" data-tool="{tool_id}"></script>'
+    if tag not in text:
+        if '<head>' not in text:
+            sys.exit(f'{page}: no <head> to load the InkDOS theme script into')
+        page.write_text(text.replace('<head>', '<head>' + tag, 1), encoding='utf-8')
+
+
 # ---- builders: one per tool; each writes the tool's static files into `dest` -------------------
 
 def build_archivedrop(src: Path, dest: Path, tool: dict) -> None:
@@ -86,6 +96,7 @@ def build_cyberchef(src: Path, dest: Path, tool: dict) -> None:
     pages = sorted(p for p in dest.glob('CyberChef_v*.html'))
     if not (dest / 'index.html').exists() and pages:
         shutil.copy2(pages[0], dest / 'index.html')
+    follow_inkdos_theme(dest / 'index.html', tool['id'])
     for zipped in dest.glob('*.zip'):
         zipped.unlink()  # the downloadable standalone bundle duplicates the site
     (dest / 'BundleAnalyzerReport.html').unlink(missing_ok=True)  # build diagnostics, not part of the app
@@ -96,6 +107,7 @@ def build_it_tools(src: Path, dest: Path, tool: dict) -> None:
     run(pnpm + ['install', '--frozen-lockfile'], src)
     run(pnpm + ['run', 'build'], src, env={'BASE_URL': f"{BASE}{tool['id']}/"})
     shutil.copytree(src / 'dist', dest, dirs_exist_ok=True)
+    follow_inkdos_theme(dest / 'index.html', tool['id'])
 
 
 def build_pnk(src: Path, dest: Path, tool: dict) -> None:
