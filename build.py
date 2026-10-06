@@ -242,7 +242,7 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
     languages = ['eng', 'por']
     env = {
         'BASE_URL': base, 'SIMPLE_MODE': 'true', 'DISABLE_GITHUB_STARS': 'true', 'COMPRESSION_MODE': 'o',
-        'SITE_URL': f"https://vfydr2m9wk-ops.github.io{base}", 'HUSKY': '0', 'NODE_OPTIONS': '--max-old-space-size=4096',
+        'SITE_URL': f"https://inkdos-tools.github.io{base}", 'HUSKY': '0', 'NODE_OPTIONS': '--max-old-space-size=4096',
         'VITE_WASM_PYMUPDF_URL': f'{wasm}/pymupdf/', 'VITE_WASM_GS_URL': f'{wasm}/gs/', 'VITE_WASM_CPDF_URL': f'{wasm}/cpdf/',
         'VITE_TESSERACT_WORKER_URL': f'{wasm}/ocr/worker.min.js', 'VITE_TESSERACT_CORE_URL': f'{wasm}/ocr/core',
         'VITE_TESSERACT_LANG_URL': f'{wasm}/ocr/lang-data', 'VITE_TESSERACT_AVAILABLE_LANGUAGES': ','.join(languages),

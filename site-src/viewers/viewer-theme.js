@@ -1,10 +1,14 @@
-// Shared by the InkDOS-tools viewers: follow the InkDOS appearance (light / dark / system, stored by
-// InkDOS on this same origin) and mark embedded use (?embed=1), where an InkDOS workspace supplies
-// the surrounding chrome.
+// Shared by the InkDOS-tools viewers: follow the InkDOS appearance (light / dark / system; InkDOS is
+// another origin and passes it as ?inkdos-theme=) and mark embedded use (?embed=1), where an InkDOS
+// workspace supplies the surrounding chrome.
 (function () {
   'use strict';
   var root = document.documentElement, mode = 'system';
+  // InkDOS is another origin and passes its appearance as ?inkdos-theme=; it is kept for later pages
+  var given = /[?&]inkdos-theme=(light|dark|system)\b/.exec(location.search);
+  try { if (given) localStorage.setItem('inkdos2:appearance', given[1]); } catch (_) {}
   try { mode = localStorage.getItem('inkdos2:appearance') || 'system'; } catch (_) {}
+  if (given) mode = given[1];
   if (!/^(light|dark|system)$/.test(mode)) mode = 'system';
   var dark = mode === 'dark' || (mode === 'system' && typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches);
   root.dataset.theme = dark ? 'dark' : 'light';

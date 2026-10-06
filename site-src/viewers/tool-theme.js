@@ -1,10 +1,14 @@
 // Loaded first by tools that have their own light/dark setting (IT-Tools, CyberChef): follow the
-// InkDOS appearance (stored by InkDOS on this same origin) so a tool opened from InkDOS matches it.
+// InkDOS appearance (passed by InkDOS, another origin, as ?inkdos-theme=) so a tool opened from InkDOS matches it.
 // Each tool keeps its own setting; this only writes it before the tool starts.
 (function () {
   'use strict';
   var mode = 'system';
-  try { mode = localStorage.getItem('inkdos2:appearance') || 'system'; } catch (_) { return; }
+  // InkDOS is another origin and passes its appearance as ?inkdos-theme=; it is kept for later pages
+  var given = /[?&]inkdos-theme=(light|dark|system)\b/.exec(location.search);
+  try { if (given) localStorage.setItem('inkdos2:appearance', given[1]); } catch (_) {}
+  try { mode = localStorage.getItem('inkdos2:appearance') || 'system'; } catch (_) { if (!given) return; }
+  if (given) mode = given[1];
   if (!/^(light|dark|system)$/.test(mode)) mode = 'system';
   var dark = mode === 'dark' || (mode === 'system' && typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches);
   var tool = document.currentScript && document.currentScript.dataset.tool;
