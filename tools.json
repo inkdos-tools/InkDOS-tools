@@ -1,5 +1,5 @@
 {
-  "base": "/inkdos-tools/",
+  "base": "/InkDOS-tools/",
   "tools": [
     {
       "id": "archivedrop",

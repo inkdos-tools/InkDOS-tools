@@ -1,7 +1,7 @@
 # InkDOS advanced tools
 
 Open-source tools for [InkDOS](https://github.com/vfydr2m9wk-ops/InkDOS), served at
-<https://vfydr2m9wk-ops.github.io/inkdos-tools/> and opened from InkDOS's **Advanced tools** menu.
+<https://vfydr2m9wk-ops.github.io/InkDOS-tools/> and opened from InkDOS's **Advanced tools** menu.
 
 Every tool is an existing open-source project that runs entirely in the browser: files are processed
 on the device and never uploaded. Nothing here is written from scratch. `build.py` fetches each project
