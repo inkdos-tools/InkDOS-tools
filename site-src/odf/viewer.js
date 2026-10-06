@@ -6,17 +6,25 @@
   var stage = document.getElementById('stage');
   var element = document.getElementById('odf');
   var status = document.getElementById('status');
-  var canvas = null, url = null;
+  var canvas = null, url = null, kind = 'text';
 
   function fit() {
     if (!canvas || element.hidden) return;
-    try { canvas.fitToWidth(Math.max(320, stage.clientWidth - 48)); } catch (_) {}
+    var width = stage.clientWidth - 48, height = stage.clientHeight - 48;
+    try {
+      // text: a page-like width, as the InkDOS editors show pages; presentation: the whole slide;
+      // spreadsheet: actual size (scaling a sheet to the window makes small tables huge)
+      if (kind === 'presentation') canvas.fitToContainingElement(Math.max(320, width), Math.max(240, height));
+      else if (kind === 'spreadsheet') canvas.setZoomLevel(1);
+      else canvas.fitToWidth(Math.max(320, Math.min(900, width)));
+    } catch (_) {}
   }
 
   function show(file) {
     return new Promise(function (resolve, reject) {
       if (url) URL.revokeObjectURL(url);
       url = URL.createObjectURL(file);
+      kind = /\.f?ods$/i.test(file.name || '') ? 'spreadsheet' : /\.f?odp$/i.test(file.name || '') ? 'presentation' : 'text';
       document.getElementById('fileName').textContent = file.name || '';
       status.textContent = 'Opening ' + (file.name || 'document') + '…';
       status.hidden = false;
