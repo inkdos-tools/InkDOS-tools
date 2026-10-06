@@ -178,10 +178,11 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
     # so the project's own service worker adds them to pages and worker scripts (coi-serviceworker technique)
     sw = dest / 'sw.js'
     sw.write_text(COI_PRELUDE + sw.read_text(encoding='utf-8'), encoding='utf-8')
+    reload = COI_RELOAD.replace('SW_URL', json.dumps(base + 'sw.js'))
     for page in dest.rglob('*.html'):
         text = page.read_text(encoding='utf-8')
-        if '<head>' in text and COI_RELOAD not in text:
-            page.write_text(text.replace('<head>', '<head>' + COI_RELOAD, 1), encoding='utf-8')
+        if '<head>' in text and reload not in text:
+            page.write_text(text.replace('<head>', '<head>' + reload, 1), encoding='utf-8')
 
 
 COI_PRELUDE = """// InkDOS-tools: add cross-origin isolation headers to pages and worker scripts (GitHub Pages cannot send them).
@@ -202,8 +203,10 @@ self.addEventListener('fetch', (event) => {
   })());
 });
 """
-COI_RELOAD = ("<script>/* InkDOS-tools: reload once when the service worker can make this page cross-origin isolated */"
-              "if(!self.crossOriginIsolated&&'serviceWorker' in navigator){navigator.serviceWorker.ready.then(function(){"
+COI_RELOAD = ("<script>/* InkDOS-tools: register the tool's service worker from any page (the project registers it from "
+              "its start page only) and reload once so the page becomes cross-origin isolated */"
+              "if(!self.crossOriginIsolated&&'serviceWorker' in navigator){navigator.serviceWorker.register(SW_URL).catch(function(){});"
+              "navigator.serviceWorker.ready.then(function(){"
               "try{if(sessionStorage.getItem('inkdos-coi'))return;sessionStorage.setItem('inkdos-coi','1')}catch(_){return}"
               "location.reload()})}</script>")
 
