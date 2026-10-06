@@ -1,0 +1,7 @@
+/* InkDOS look for the Pyodide console (loaded after its styles): the terminal takes the InkDOS surface and
+   text colours in the InkDOS appearance instead of a fixed black screen. */
+body{background-color:var(--ink-bg)}
+.terminal{--background:var(--ink-bg);--color:var(--ink-text);--link-color:var(--ink-accent);--size:1.4;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.terminal,.terminal-scroller{background-color:var(--ink-bg)}
+#jquery-terminal-logo a{color:var(--ink-subtle)}
+#loading{border-color:var(--ink-border);border-top-color:var(--ink-accent)}

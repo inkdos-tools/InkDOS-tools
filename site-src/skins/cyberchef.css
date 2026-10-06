@@ -1,0 +1,20 @@
+/* InkDOS look for CyberChef (loaded after its stylesheet): its Classic and Dark themes take the InkDOS
+   surfaces and accent; the green banner and Bake button become InkDOS colours. Operation highlight colours
+   (breakpoints, flow control) keep their meaning. */
+:root.classic,:root.dark{
+  --primary-font-family:var(--ink-font);--primary-font-colour:var(--ink-text);--subtext-font-colour:var(--ink-muted);
+  --primary-background-colour:var(--ink-card);--secondary-background-colour:var(--ink-bg);
+  --primary-border-colour:var(--ink-border);--secondary-border-colour:var(--ink-border);
+  --title-colour:var(--ink-text);--title-background-colour:var(--ink-card);
+  --banner-font-colour:var(--ink-muted);--banner-bg-colour:var(--ink-card);--banner-url-colour:var(--ink-accent);
+  --category-list-font-colour:var(--ink-accent);
+  --op-list-operation-font-colour:var(--ink-text);--op-list-operation-bg-colour:var(--ink-card);--op-list-operation-border-colour:var(--ink-border);
+  --rec-list-operation-font-colour:var(--ink-text);--rec-list-operation-bg-colour:var(--ink-accent-soft);--rec-list-operation-border-colour:var(--ink-border);
+  --arg-font-colour:var(--ink-text);--arg-background:var(--ink-field);--arg-border-colour:var(--ink-border);--arg-label-colour:var(--ink-accent);
+  --btn-default-font-colour:var(--ink-text);--btn-default-bg-colour:var(--ink-card);--btn-default-border-colour:var(--ink-border);
+  --btn-default-hover-font-colour:var(--ink-text);--btn-default-hover-bg-colour:var(--ink-hover);--btn-default-hover-border-colour:var(--ink-border-strong);
+  --btn-success-font-colour:var(--ink-accent-text);--btn-success-bg-colour:var(--ink-accent);--btn-success-border-colour:var(--ink-accent);
+  --btn-success-hover-font-colour:var(--ink-accent-text);--btn-success-hover-bg-colour:var(--ink-accent-hover);--btn-success-hover-border-colour:var(--ink-accent-hover);
+  --scrollbar-track:var(--ink-bg);--drop-file-border-colour:var(--ink-accent);--popover-background:var(--ink-card);--popover-border-colour:var(--ink-border);
+  --input-highlight-colour:var(--ink-accent);--input-border-colour:var(--ink-border-strong)}
+#banner{border-bottom:1px solid var(--ink-border)}

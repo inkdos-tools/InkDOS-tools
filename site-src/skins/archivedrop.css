@@ -1,0 +1,13 @@
+/* InkDOS look for ArchiveDrop (loaded after its stylesheet): InkDOS surfaces in the InkDOS appearance
+   (ArchiveDrop itself follows only the OS theme) and the InkDOS accent. */
+:root,html[data-theme]{--bg:var(--ink-bg);--card:var(--ink-card);--text:var(--ink-text);--muted:var(--ink-muted);--primary:var(--ink-accent);--border:var(--ink-border)}
+body{font-family:var(--ink-font);-webkit-font-smoothing:antialiased}
+.hero h1{font-size:2rem;font-weight:760;letter-spacing:-.03em}
+.card{backdrop-filter:none;box-shadow:var(--ink-shadow)}
+.dropzone{border-color:var(--ink-border-strong);background:var(--ink-hover)}
+.dropzone.dragover{box-shadow:0 0 0 3px var(--ink-accent-soft)}
+.dropzone-content i{color:var(--ink-accent)}
+.progress{background:var(--ink-border)}
+.progress-bar{background:var(--ink-accent)}
+.btn.primary{background:var(--ink-accent);color:var(--ink-accent-text)}
+.btn.primary:hover{background:var(--ink-accent-hover)}

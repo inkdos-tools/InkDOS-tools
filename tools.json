@@ -48,7 +48,7 @@
     {
       "id": "bentopdf",
       "name": "BentoPDF",
-      "title": "PDF toolkit (BentoPDF)",
+      "title": "PDF toolkit",
       "group": "PDF",
       "description": "Merge, split, compress, convert, OCR, edit and protect PDFs; Word, Excel, PowerPoint and LibreOffice files to PDF, all in the browser.",
       "repo": "https://github.com/alam00000/bentopdf",
