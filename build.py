@@ -112,6 +112,34 @@ def build_pnk(src: Path, dest: Path, tool: dict) -> None:
     run(['bash', 'scripts/build_viewer.sh'], src)
     shutil.copytree(src / 'viewer' / 'dist', dest, dirs_exist_ok=True)
     shutil.copy2(src / 'LICENSE-APACHE', dest / 'UPSTREAM-LICENSE-APACHE.txt')
+    # InkDOS embed mode (site-src/viewers/): follow the InkDOS theme and accept a file handed over by
+    # an InkDOS workspace; pnk's own code is unchanged
+    patch(dest / 'index.html', [
+        ('<link rel="stylesheet" href="styles.css">',
+         '<link rel="stylesheet" href="styles.css">\n  <link rel="stylesheet" href="../viewers/pnk-embed.css">\n'
+         '  <script src="../viewers/viewer-theme.js"></script>'),
+        ('</body>', '<script src="../viewers/pnk-embed.js"></script>\n<script src="../viewers/viewer-embed.js"></script>\n</body>'),
+    ])
+
+
+def build_odf(src: Path, dest: Path, tool: dict) -> None:
+    # WebODF's own cmake build (closure compiler) produces webodf.js. Its 2016 build scripts use
+    # Node APIs that later Node versions reject, so they run on Node 6 from the npm registry.
+    node6 = src.parent / 'node6'
+    if not (node6 / 'node_modules' / 'node').exists():
+        node6.mkdir(parents=True, exist_ok=True)
+        run(['npm', 'install', '--no-audit', '--no-fund', '--prefix', str(node6), 'node@6.17.1'], node6)
+    node = (node6 / 'node_modules' / 'node' / 'bin' / 'node').resolve()
+    build = src.parent / f"{tool['id']}-build"
+    shutil.rmtree(build, ignore_errors=True)
+    build.mkdir(parents=True)
+    env = {'PATH': f"{node.parent}{os.pathsep}{os.environ['PATH']}"}
+    # a shallow fetch has no tags for WebODF's git-describe version check; the pinned commit is v0.5.10
+    run(['cmake', f'-DNODE={node}', '-DOVERRULED_WEBODF_VERSION=0.5.10', str(src)], build, env=env)
+    run(['make', 'webodf.js-target'], build, env=env)
+    shutil.copy2(build / 'webodf' / 'webodf.js', dest / 'webodf.js')
+    # the viewer page around WebODF's OdfCanvas (site-src/odf/)
+    copy_files(ROOT / 'site-src' / 'odf', dest, ['index.html', 'viewer.js'])
 
 
 def npm_pack(specs: list[str], into: Path) -> list[Path]:
@@ -240,6 +268,7 @@ BUILDERS = {
     'pnk': build_pnk,
     'bentopdf': build_bentopdf,
     'python': build_python,
+    'odf': build_odf,
 }
 
 
@@ -253,6 +282,8 @@ def write_index(out: Path, tools: list[dict]) -> None:
         f'<em>{t["name"]} · {t["license"]}</em></a></li>' for t in tools)
     (out / 'index.html').write_text(template.replace('<!-- TOOLS -->', items), encoding='utf-8')
     shutil.copy2(ROOT / 'LICENSE', out / 'LICENSE.txt')
+    # shared by the viewers: InkDOS look, theme and the embed protocol (site-src/viewers/)
+    shutil.copytree(ROOT / 'site-src' / 'viewers', out / 'viewers', dirs_exist_ok=True)
     (out / '.nojekyll').write_text('', encoding='utf-8')
     # GitHub Pages serves one 404 page per site: send a deep link inside a tool (single-page apps with
     # history routing, e.g. IT-Tools) back to that tool's start page instead of a dead end

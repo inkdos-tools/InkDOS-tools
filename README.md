@@ -16,6 +16,7 @@ together with its licence (`UPSTREAM-LICENSE.txt`) and source reference (`UPSTRE
 | Apple Pages, Numbers and Keynote viewer | [pnk](https://github.com/peterheb/pnk) | MIT or Apache-2.0 |
 | PDF toolkit, Office/LibreOffice to PDF | [BentoPDF](https://github.com/alam00000/bentopdf) | AGPL-3.0 |
 | Python terminal | [Pyodide](https://github.com/pyodide/pyodide) console | MPL-2.0 |
+| OpenDocument viewer (.odt/.ods/.odp) | [WebODF](https://github.com/kogmbh/WebODF) | AGPL-3.0 |
 
 Changes to upstream are limited to what `build.py` states next to each builder: pnk's optional
 Google Fonts substitutes are off by default (the setting stays in the viewer), so no tool makes a
@@ -27,6 +28,10 @@ network request unless the user turns one on.
   headers that LibreOffice WASM (Office/ODF to PDF) needs, so a short prelude in BentoPDF's own service
   worker adds them to pages and worker scripts; each page reloads once the first time to become
   cross-origin isolated.
+- **Viewers for InkDOS workspaces**: `odf/` (WebODF's `OdfCanvas` with a small page in `site-src/odf/`)
+  and `pnk/` accept a file handed over by an InkDOS workspace (`?embed=1`, same origin, protocol in
+  `site-src/viewers/viewer-embed.js`) and follow the InkDOS light/dark appearance. WebODF is built
+  with its own cmake build; its 2016 scripts run on Node 6 from the npm registry.
 - **Pyodide**'s console loads jQuery, jQuery Terminal and idb-keyval from CDNs; they are served from
   `python/vendor/` instead, each with its licence. Python packages beyond the standard library are not
   bundled.

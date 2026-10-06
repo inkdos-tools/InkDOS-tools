@@ -66,6 +66,17 @@
       "ref": "b1e4fcc2488962f6360a97f19b9982d6fdb5d16f",
       "license": "MPL-2.0",
       "license_file": "LICENSE"
+    },
+    {
+      "id": "odf",
+      "name": "WebODF",
+      "title": "OpenDocument viewer",
+      "group": "View",
+      "description": "View LibreOffice / OpenDocument files (.odt, .ods, .odp), view only.",
+      "repo": "https://github.com/kogmbh/WebODF",
+      "ref": "999917d0df55abde6d2119ea4d584ccb6039694e",
+      "license": "AGPL-3.0",
+      "license_file": "AGPL-3.0.txt"
     }
   ]
 }
