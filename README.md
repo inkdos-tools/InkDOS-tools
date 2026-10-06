@@ -39,7 +39,7 @@ python build.py --out _site --only cyberchef
 ```
 
 Requirements: git, Python 3.11+, Node.js 24 with npm (IT-Tools runs its pinned pnpm through npx; pnk needs Rust with the `wasm32-unknown-unknown` target and `wasm-bindgen-cli` 0.2.127).
-The site is deployed by `.github/workflows/pages.yml` (Settings → Pages → Source: **GitHub Actions**).
+The site is built by `.github/workflows/pages.yml` and published to the `gh-pages` branch (Settings → Pages → Source: **Deploy from a branch**, `gh-pages`, `/`).
 
 ## Licences
 
