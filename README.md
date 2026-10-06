@@ -14,10 +14,22 @@ together with its licence (`UPSTREAM-LICENSE.txt`) and source reference (`UPSTRE
 | Data toolbox | [CyberChef](https://github.com/gchq/CyberChef) | Apache-2.0 |
 | Developer utilities | [IT-Tools](https://github.com/CorentinTh/it-tools) | GPL-3.0 |
 | Apple Pages, Numbers and Keynote viewer | [pnk](https://github.com/peterheb/pnk) | MIT or Apache-2.0 |
+| PDF toolkit, Office/LibreOffice to PDF | [BentoPDF](https://github.com/alam00000/bentopdf) | AGPL-3.0 |
+| Python terminal | [Pyodide](https://github.com/pyodide/pyodide) console | MPL-2.0 |
 
 Changes to upstream are limited to what `build.py` states next to each builder: pnk's optional
 Google Fonts substitutes are off by default (the setting stays in the viewer), so no tool makes a
 network request unless the user turns one on.
+
+- **BentoPDF** is built as the project's self-hosted ("simple mode") build with every runtime asset
+  (PyMuPDF, Ghostscript and CoherentPDF WASM, Tesseract OCR with English and Portuguese, fonts) served
+  from this site, following the project's own air-gap recipe. GitHub Pages cannot send the COOP/COEP
+  headers that LibreOffice WASM (Office/ODF to PDF) needs, so a short prelude in BentoPDF's own service
+  worker adds them to pages and worker scripts; each page reloads once the first time to become
+  cross-origin isolated.
+- **Pyodide**'s console loads jQuery, jQuery Terminal and idb-keyval from CDNs; they are served from
+  `python/vendor/` instead, each with its licence. Python packages beyond the standard library are not
+  bundled.
 
 ## Build
 

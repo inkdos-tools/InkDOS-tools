@@ -44,6 +44,28 @@
       "ref": "617f906c26a27a59b69bd94beffe6995be17eb0a",
       "license": "MIT OR Apache-2.0",
       "license_file": "LICENSE-MIT"
+    },
+    {
+      "id": "bentopdf",
+      "name": "BentoPDF",
+      "title": "PDF toolkit (BentoPDF)",
+      "group": "PDF",
+      "description": "Merge, split, compress, convert, OCR, edit and protect PDFs; Word, Excel, PowerPoint and LibreOffice files to PDF, all in the browser.",
+      "repo": "https://github.com/alam00000/bentopdf",
+      "ref": "f96cd4e5166f3d51393dfe9f3c440b5bb77802f1",
+      "license": "AGPL-3.0",
+      "license_file": "LICENSE"
+    },
+    {
+      "id": "python",
+      "name": "Pyodide",
+      "title": "Python terminal (Pyodide)",
+      "group": "Developer",
+      "description": "A Python 3 console with the standard library, running entirely in the browser.",
+      "repo": "https://github.com/pyodide/pyodide",
+      "ref": "b1e4fcc2488962f6360a97f19b9982d6fdb5d16f",
+      "license": "MPL-2.0",
+      "license_file": "LICENSE"
     }
   ]
 }
