@@ -77,6 +77,17 @@
       "ref": "999917d0df55abde6d2119ea4d584ccb6039694e",
       "license": "AGPL-3.0",
       "license_file": "AGPL-3.0.txt"
+    },
+    {
+      "id": "squoosh",
+      "name": "Squoosh",
+      "title": "Image converter and compressor",
+      "group": "Images",
+      "description": "Convert images between JPG, PNG, WebP and AVIF, resize them and make them smaller, comparing before and after.",
+      "repo": "https://github.com/GoogleChromeLabs/squoosh",
+      "ref": "e8d35e0fb66eb16eff6fe8fc773eabcbb7128de3",
+      "license": "Apache-2.0",
+      "license_file": "LICENSE"
     }
   ]
 }

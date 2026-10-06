@@ -19,6 +19,7 @@ together with its licence (`UPSTREAM-LICENSE.txt`) and source reference (`UPSTRE
 | PDF toolkit, Office/LibreOffice to PDF | [BentoPDF](https://github.com/alam00000/bentopdf) | AGPL-3.0 |
 | Python terminal | [Pyodide](https://github.com/pyodide/pyodide) console | MPL-2.0 |
 | OpenDocument viewer (.odt/.ods/.odp) | [WebODF](https://github.com/kogmbh/WebODF) | AGPL-3.0 |
+| Image converter and compressor | [Squoosh](https://github.com/GoogleChromeLabs/squoosh) | Apache-2.0 |
 
 Changes to upstream are limited to what `build.py` states next to each builder: pnk's optional
 Google Fonts substitutes are off by default (the setting stays in the viewer), so no tool makes a
@@ -37,6 +38,8 @@ network request unless the user turns one on.
 - **Pyodide**'s console loads jQuery, jQuery Terminal and idb-keyval from CDNs; they are served from
   `python/vendor/` instead, each with its licence. Python packages beyond the standard library are not
   bundled.
+- **Squoosh** is served from `squoosh/` instead of the site root; its Google Analytics script and its
+  offline service worker are left out.
 
 ## Build
 

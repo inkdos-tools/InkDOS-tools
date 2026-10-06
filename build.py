@@ -342,6 +342,37 @@ def build_python(src: Path, dest: Path, tool: dict) -> None:
     ])
 
 
+def build_squoosh(src: Path, dest: Path, tool: dict) -> None:
+    # Squoosh writes root-absolute URLs ("/c/..."); one function maps its output files to URLs, so the tool's
+    # sub-path goes there. Its service worker (offline cache, root scope) is not registered and Google
+    # Analytics is not loaded: InkDOS tools make no network requests.
+    base = f"{BASE}{tool['id']}/"
+    patch(src / 'lib' / 'entry-data-plugin.js', [
+        ("return fileName.replace(/^static\\//, '/');", f"return fileName.replace(/^static\\//, '{base}');"),
+    ])
+    patch(src / 'src' / 'static-build' / 'pages' / 'index' / 'index.tsx', [
+        ('      <link rel="manifest" href="/manifest.json" />\n', ''),
+        ('href="/">', f'href="{base}">'),
+    ])
+    patch(src / 'src' / 'client' / 'initial-app' / 'App' / 'index.tsx', [
+        ("const ROUTE_EDITOR = '/editor';", f"const ROUTE_EDITOR = '{base}editor';"),
+        ('      offliner(this.showSnack);\n', '      // InkDOS-tools: no service worker (offline cache) for this tool\n'),
+    ])
+    patch(src / 'src' / 'client' / 'initial-app' / 'index.tsx', [
+        ("  addEventListener('load', () => {\n    const script = document.createElement('script');\n"
+         "    script.src = 'https://www.google-analytics.com/analytics.js';\n    document.head.appendChild(script);\n  });\n",
+         "  // InkDOS-tools: the Google Analytics script is not loaded\n"),
+    ])
+    run(['npm', 'ci', '--no-audit', '--no-fund'], src, env={'HUSKY': '0'})
+    run(['npm', 'run', 'build'], src)
+    shutil.copytree(src / 'build', dest, dirs_exist_ok=True)
+    for name in ('_headers', '_redirects', 'manifest.json', 'serviceworker.js', 'sw.js', 'sw-bridge.894ac.js'):
+        (dest / name).unlink(missing_ok=True)  # host configuration and the unused offline worker
+    # the page declares no encoding; its inline script has non-ASCII text, so its CSP hash needs UTF-8
+    patch(dest / 'index.html', [('<head>', '<head><meta charset="utf-8">')])
+    inkdos_skin(dest / 'index.html', tool['id'])
+
+
 BUILDERS = {
     'archivedrop': build_archivedrop,
     'cyberchef': build_cyberchef,
@@ -350,6 +381,7 @@ BUILDERS = {
     'bentopdf': build_bentopdf,
     'python': build_python,
     'odf': build_odf,
+    'squoosh': build_squoosh,
 }
 
 
@@ -357,7 +389,7 @@ BUILDERS = {
 # the tools run entirely in the browser, so nothing may be fetched from or sent to another site. Inline
 # scripts are allowed only by their exact hash; WebAssembly is allowed, eval() is not. Audited per tool
 # (each one used under this policy without violations): ArchiveDrop, BentoPDF, CyberChef, IT-Tools,
-# Pyodide, WebODF and pnk.
+# Pyodide, WebODF, pnk and Squoosh.
 CSP_BASE = ("default-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self' data:",
             "connect-src 'self' data: blob:", "worker-src 'self' blob:", "frame-src 'self' blob:", "media-src 'self' data: blob:",
             "object-src 'none'", "base-uri 'self'", "form-action 'none'")

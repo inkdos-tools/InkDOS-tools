@@ -1,0 +1,12 @@
+/* InkDOS look for Squoosh (loaded after its stylesheet). The start page takes the InkDOS surfaces and accent
+   instead of the pink blob and blue waves (its classes are CSS-module names, matched by their stable prefix);
+   the editor keeps its two side colours (blue left, pink right), which tell the compared images apart. */
+html,body{font-family:var(--ink-font)}
+[class*="_intro_"]{--blob-pink:var(--ink-accent);--deep-blue:var(--ink-card);--light-blue:var(--ink-border);--dim-blue:var(--ink-accent);
+  --pink:var(--ink-accent);--light-gray:var(--ink-hover);--dim-text:var(--ink-text-2);--off-black:var(--ink-text);background:var(--ink-bg)}
+[class*="_intro_"] [class*="_main_"]{--blob-pink:var(--ink-accent)}
+[class*="_demo-title_"],[class*="_demo-title_"] strong{color:var(--ink-text)}
+[class*="_info_"],[class*="_footer_"]{background:var(--ink-card)}
+[class*="_info-wave_"]{fill:var(--ink-card)}
+/* the logo's dark lettering stays readable on the dark InkDOS surface (hue-rotate keeps its colours) */
+html[data-theme="dark"] [class*="_logo_"]{filter:invert(1) hue-rotate(180deg)}
