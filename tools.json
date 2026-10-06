@@ -1,0 +1,49 @@
+{
+  "base": "/inkdos-tools/",
+  "tools": [
+    {
+      "id": "archivedrop",
+      "name": "ArchiveDrop",
+      "title": "Extract ZIP, RAR and 7z",
+      "group": "Files",
+      "description": "Open ZIP, RAR and 7z archives and save the files inside.",
+      "repo": "https://github.com/R0mb0/ArchiveDrop",
+      "ref": "e2a8bc405f3c896f7820665b99e95047cadab66e",
+      "license": "MIT",
+      "license_file": "LICENSE"
+    },
+    {
+      "id": "cyberchef",
+      "name": "CyberChef",
+      "title": "CyberChef (data toolbox)",
+      "group": "Developer",
+      "description": "Encode, decode, hash, encrypt, compress and analyse data with hundreds of operations.",
+      "repo": "https://github.com/gchq/CyberChef",
+      "ref": "58c1c599daa3c4ce3c6bff3aea4a47afb4e46040",
+      "license": "Apache-2.0",
+      "license_file": "LICENSE"
+    },
+    {
+      "id": "it-tools",
+      "name": "IT-Tools",
+      "title": "IT-Tools (developer utilities)",
+      "group": "Developer",
+      "description": "Formatters, converters, generators and network helpers for developers (JSON, YAML, UUID, JWT, regex and more).",
+      "repo": "https://github.com/CorentinTh/it-tools",
+      "ref": "e888ce21ad039bf4c74f95165bdcf1a713a1a956",
+      "license": "GPL-3.0",
+      "license_file": "LICENSE"
+    },
+    {
+      "id": "pnk",
+      "name": "pnk",
+      "title": "Apple Pages, Numbers and Keynote viewer",
+      "group": "View",
+      "description": "View .pages, .numbers and .key files in the browser (view only, no conversion).",
+      "repo": "https://github.com/peterheb/pnk",
+      "ref": "617f906c26a27a59b69bd94beffe6995be17eb0a",
+      "license": "MIT OR Apache-2.0",
+      "license_file": "LICENSE-MIT"
+    }
+  ]
+}
