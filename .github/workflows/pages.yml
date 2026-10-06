@@ -33,6 +33,8 @@ jobs:
       - name: Build every tool
         run: python build.py --out _site
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true  # turns Pages on (Source: GitHub Actions) when the token is allowed to
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
