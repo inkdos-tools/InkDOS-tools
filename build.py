@@ -277,13 +277,18 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
     (out / 'ocr' / 'fonts').mkdir(parents=True, exist_ok=True)
     shutil.copy2(out / 'embedpdf' / 'fonts-latin@1.0.0' / 'fonts' / 'NotoSans-Regular.ttf', out / 'ocr' / 'fonts' / font.rsplit('/', 1)[1])
     # GitHub Pages cannot send COOP/COEP headers; LibreOffice WASM (Office/ODF to PDF) needs SharedArrayBuffer,
-    # so the project's own service worker adds them to pages and worker scripts (coi-serviceworker technique)
+    # so the project's own service worker adds them (coi-serviceworker technique), but only to the pages whose
+    # tool loads LibreOffice: on iOS Safari an isolated page opened from another one went straight back, so every
+    # other tool stays a plain page
+    coi_pages = sorted(base + page.name for page in dest.glob('*.html') if needs_isolation(page, dest, base))
+    if not coi_pages:
+        sys.exit('bentopdf: no page loads LibreOffice; the isolation list would be empty')
     sw = dest / 'sw.js'
-    sw.write_text(COI_PRELUDE + sw.read_text(encoding='utf-8'), encoding='utf-8')
+    sw.write_text(COI_PRELUDE.replace('__COI_PAGES_JSON__', json.dumps(coi_pages)) + sw.read_text(encoding='utf-8'), encoding='utf-8')
     reload = COI_RELOAD.replace('SW_URL', json.dumps(base + 'sw.js'))
     for page in dest.rglob('*.html'):
         text = page.read_text(encoding='utf-8')
-        if '<head>' in text and reload not in text:
+        if base + page.name in coi_pages and page.parent == dest and '<head>' in text and reload not in text:
             page.write_text(text.replace('<head>', '<head>' + reload, 1), encoding='utf-8')
         if '<head>' in text and '</head>' in text:
             # page titles name the upstream brand directly (the branding options cover header and footer)
@@ -293,11 +298,24 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
             inkdos_skin(page, tool['id'])
 
 
-COI_PRELUDE = """// InkDOS-tools: add cross-origin isolation headers to pages and worker scripts (GitHub Pages cannot send them).
+def needs_isolation(page: Path, dest: Path, base: str) -> bool:
+    """A BentoPDF page needs cross-origin isolation when its entry script loads LibreOffice WASM."""
+    entry = re.search(r'<script type="module"[^>]*src="([^"]+)"', page.read_text(encoding='utf-8'))
+    if not entry or not entry.group(1).startswith(base):
+        return False
+    script = dest / entry.group(1)[len(base):]
+    return script.is_file() and b'libreoffice' in script.read_bytes()
+
+
+COI_PRELUDE = """// InkDOS-tools: add cross-origin isolation headers to the pages that load LibreOffice WASM and to worker scripts
+// (GitHub Pages cannot send them).
+const INKDOS_COI_PAGES = new Set(__COI_PAGES_JSON__);
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  const isolated = request.mode === 'navigate' || request.destination === 'worker' || request.destination === 'sharedworker';
-  if (!isolated || new URL(request.url).origin !== location.origin) return;
+  const url = new URL(request.url);
+  const isolated = (request.mode === 'navigate' && INKDOS_COI_PAGES.has(url.pathname))
+    || request.destination === 'worker' || request.destination === 'sharedworker';
+  if (!isolated || url.origin !== location.origin) return;
   event.stopImmediatePropagation();
   event.respondWith((async () => {
     let response;
@@ -311,11 +329,11 @@ self.addEventListener('fetch', (event) => {
   })());
 });
 """
-COI_RELOAD = ("<script>/* InkDOS-tools: register the tool's service worker from any page (the project registers it from "
-              "its start page only) and reload once so the page becomes cross-origin isolated */"
+COI_RELOAD = ("<script>/* InkDOS-tools: on a page that needs it, register the tool's service worker (the project registers it "
+              "from its start page only) and reload once so the page becomes cross-origin isolated */"
               "if(!self.crossOriginIsolated&&'serviceWorker' in navigator){navigator.serviceWorker.register(SW_URL).catch(function(){});"
               "navigator.serviceWorker.ready.then(function(){"
-              "try{if(sessionStorage.getItem('inkdos-coi'))return;sessionStorage.setItem('inkdos-coi','1')}catch(_){return}"
+              "try{var k='inkdos-coi:'+location.pathname;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(_){return}"
               "location.reload()})}</script>")
 
 

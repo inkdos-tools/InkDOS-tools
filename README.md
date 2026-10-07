@@ -29,8 +29,9 @@ network request unless the user turns one on.
   (PyMuPDF, Ghostscript and CoherentPDF WASM, Tesseract OCR with English and Portuguese, fonts) served
   from this site, following the project's own air-gap recipe. GitHub Pages cannot send the COOP/COEP
   headers that LibreOffice WASM (Office/ODF to PDF) needs, so a short prelude in BentoPDF's own service
-  worker adds them to pages and worker scripts; each page reloads once the first time to become
-  cross-origin isolated.
+  worker adds them to worker scripts and to the pages whose tool loads LibreOffice (found at build time);
+  such a page reloads once the first time to become cross-origin isolated. Every other tool page stays a
+  plain page (on iOS Safari, isolated tool pages opened from the start page went straight back to it).
 - **Viewers for InkDOS workspaces**: `odf/` (WebODF's `OdfCanvas` with a small page in `site-src/odf/`)
   and `pnk/` accept a file handed over by an InkDOS workspace (`?embed=1`, same origin, protocol in
   `site-src/viewers/viewer-embed.js`) and follow the InkDOS light/dark appearance. WebODF is built
