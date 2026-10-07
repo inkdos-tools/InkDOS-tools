@@ -36,12 +36,13 @@
   function ready() {
     const term = globalThis.term, py = globalThis.pyodide;
     if (!term || !py || !py.FS) return setTimeout(ready, 200);
+    keepFiles(py, term);
     bar.querySelectorAll('button').forEach((b) => { b.disabled = false; });
     term.echo(safe(ONLINE
       ? 'InkDOS online terminal: import micropip, then await micropip.install("package-name") (pure-Python packages from PyPI).'
       : 'InkDOS: numpy, pandas, matplotlib, scipy, statsmodels, sympy, networkx, pillow, openpyxl, python-docx and more load on import.'));
     term.echo(safe('Open file… copies files into ' + HOME + '; Save file… downloads one (charts: plt.savefig("chart.png")). '
-      + 'Files are lost when this tab is closed or reloaded.'));
+      + 'Files in ' + HOME + ' are kept in this browser\'s storage on this device, also after closing the tab.'));
     bar.querySelector('[data-open]').addEventListener('click', () => picker.click());
     picker.addEventListener('change', async () => {
       for (const file of picker.files) {
@@ -50,6 +51,7 @@
           py.FS.writeFile(HOME + '/' + name, new Uint8Array(await file.arrayBuffer()));
           lastName = name;
           term.echo(safe('Opened ' + name + ' → ' + HOME + '/' + name));
+          store();
         } catch (error) { term.error(safe('Could not open ' + name + ': ' + error)); }
       }
       picker.value = '';
@@ -68,6 +70,33 @@
         term.echo(safe('Saved ' + full));
       } catch (error) { term.error(safe('Could not save ' + full + ': no such file')); }
     });
+  }
+  // Files in HOME persist in the browser's own storage (IndexedDB, through Emscripten's IDBFS): restored when the
+  // terminal opens and written back a few seconds after a change, when the tab is hidden and before it closes.
+  let store = () => {};
+  function keepFiles(py, term) {
+    try {
+      py.FS.mount(py.FS.filesystems.IDBFS, {}, HOME);
+    } catch (error) { term.error(safe('Files will not be kept after closing (' + error + ')')); return; }
+    let busy = false, again = false;
+    const sync = () => {
+      if (busy) { again = true; return; }
+      busy = true;
+      py.FS.syncfs(false, (error) => {
+        busy = false;
+        if (error) console.warn('InkDOS: could not keep the Python files', error);
+        if (again) { again = false; sync(); }
+      });
+    };
+    store = sync;
+    py.FS.syncfs(true, (error) => {
+      if (error) { term.error(safe('Could not restore the kept files: ' + error)); return; }
+      const kept = py.FS.readdir(HOME).filter((n) => n !== '.' && n !== '..');
+      if (kept.length) term.echo(safe('Kept files restored in ' + HOME + ': ' + kept.join(', ')));
+      setInterval(sync, 5000);
+    });
+    doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'hidden') sync(); });
+    addEventListener('pagehide', sync);
   }
   function install() { doc.body.appendChild(bar); doc.documentElement.classList.add('inkdos-python'); ready(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', install, { once: true }); else install();
