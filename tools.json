@@ -61,7 +61,7 @@
       "name": "Pyodide",
       "title": "Python terminal (Pyodide)",
       "group": "Developer",
-      "description": "A Python 3 console with the standard library, running entirely in the browser.",
+      "description": "A Python 3 console with numpy, pandas, matplotlib, scipy, openpyxl and more, running entirely in the browser; open and save files.",
       "repo": "https://github.com/pyodide/pyodide",
       "ref": "b1e4fcc2488962f6360a97f19b9982d6fdb5d16f",
       "license": "MPL-2.0",

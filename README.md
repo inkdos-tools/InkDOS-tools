@@ -17,7 +17,7 @@ together with its licence (`UPSTREAM-LICENSE.txt`) and source reference (`UPSTRE
 | Developer utilities | [IT-Tools](https://github.com/CorentinTh/it-tools) | GPL-3.0 |
 | Apple Pages, Numbers and Keynote viewer | [pnk](https://github.com/peterheb/pnk) | MIT or Apache-2.0 |
 | PDF toolkit, Office/LibreOffice to PDF | [BentoPDF](https://github.com/alam00000/bentopdf) | AGPL-3.0 |
-| Python terminal | [Pyodide](https://github.com/pyodide/pyodide) console | MPL-2.0 |
+| Python terminal (numpy, pandas, matplotlib…) | [Pyodide](https://github.com/pyodide/pyodide) console | MPL-2.0 |
 | OpenDocument viewer (.odt/.ods/.odp) | [WebODF](https://github.com/kogmbh/WebODF) | AGPL-3.0 |
 | Image converter and compressor | [Squoosh](https://github.com/GoogleChromeLabs/squoosh) | Apache-2.0 |
 
@@ -36,8 +36,11 @@ network request unless the user turns one on.
   `site-src/viewers/viewer-embed.js`) and follow the InkDOS light/dark appearance. WebODF is built
   with its own cmake build; its 2016 scripts run on Node 6 from the npm registry.
 - **Pyodide**'s console loads jQuery, jQuery Terminal and idb-keyval from CDNs; they are served from
-  `python/vendor/` instead, each with its licence. Python packages beyond the standard library are not
-  bundled.
+  `python/vendor/` instead, each with its licence. numpy, pandas, matplotlib, scipy, statsmodels, sympy,
+  networkx, pillow, openpyxl, python-docx and a few more (`PYTHON_PACKAGES`, `PYPI_WHEELS` in `build.py`,
+  each checked by sha256) are served from `python/` and load on import, offline. An InkDOS bar opens files
+  from the device into Python and saves files back. `python/online.html` is the same terminal allowed to
+  reach PyPI, so `micropip.install()` works there (the user is asked first); see `SECURITY.md`.
 - **Squoosh** is served from `squoosh/` instead of the site root; its Google Analytics script and its
   offline service worker are left out.
 

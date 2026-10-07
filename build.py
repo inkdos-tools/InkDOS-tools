@@ -340,6 +340,70 @@ def build_python(src: Path, dest: Path, tool: dict) -> None:
         ('https://cdn.jsdelivr.net/npm/jquery@3.7.1', './vendor/jquery/dist/jquery.min.js'),
         ('https://unpkg.com/idb-keyval@5.0.2/dist/esm/index.js', './vendor/idb-keyval/dist/esm/index.js'),
     ])
+    # Python packages served from this site, so `import pandas` works offline: the Pyodide builds of
+    # PYTHON_PACKAGES and their dependencies (each checked against the sha256 in Pyodide's own lock file), plus
+    # the pure-Python wheels of PYPI_WHEELS (pinned by sha256) registered in that lock file
+    lock_file = dest / 'pyodide-lock.json'
+    lock = json.loads(lock_file.read_text(encoding='utf-8'))
+    packages, wanted = lock['packages'], set()
+    def need(name: str) -> None:
+        if name not in wanted:
+            wanted.add(name)
+            for dep in packages[name]['depends']:
+                need(dep)
+    for name in PYTHON_PACKAGES + [dep for wheel in PYPI_WHEELS for dep in wheel['depends'] if dep in packages]:
+        need(name)
+    for name in sorted(wanted):
+        entry = packages[name]
+        fetch_checked(f"https://cdn.jsdelivr.net/pyodide/v{version}/full/{entry['file_name']}", entry['sha256'], dest / entry['file_name'])
+    for wheel in PYPI_WHEELS:
+        fetch_checked(wheel['url'], wheel['sha256'], dest / wheel['url'].rsplit('/', 1)[1])
+        packages[wheel['name']] = {'depends': wheel['depends'], 'file_name': wheel['url'].rsplit('/', 1)[1], 'imports': wheel['imports'],
+                                   'install_dir': 'site', 'name': wheel['name'], 'package_type': 'package', 'sha256': wheel['sha256'],
+                                   'tool': {}, 'unvendored_tests': False, 'version': wheel['version']}
+    lock_file.write_text(json.dumps(lock), encoding='utf-8')
+    # InkDOS bar (open/save files, offline/online terminal); online.html is the same terminal with PyPI allowed in its
+    # connect-src (CSP_CONNECT), for micropip.install()
+    shutil.copy2(ROOT / 'site-src' / 'python' / 'inkdos-python.js', dest / 'inkdos-python.js')
+    console = (dest / 'index.html').read_text(encoding='utf-8')
+    if '</body>' not in console:
+        sys.exit(f'{dest / "index.html"}: no </body> for the InkDOS bar')
+    console = console.replace('</body>', '<script src="./inkdos-python.js"></script></body>', 1)
+    (dest / 'index.html').write_text(console.replace('<html>', '<html data-inkdos-python="offline">', 1), encoding='utf-8')
+    online = console.replace('<html>', '<html data-inkdos-python="online">', 1).replace(
+        '<head>', '<head>' + CSP_CONNECT_META.format(' '.join(PYPI_ORIGINS)), 1)
+    (dest / 'online.html').write_text(online, encoding='utf-8')
+
+
+def fetch_checked(url: str, sha256: str, target: Path) -> None:
+    """Download a file and keep it only if its sha256 is the pinned one."""
+    if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() == sha256:
+        return
+    print('+ fetch', url, flush=True)
+    data = subprocess.run(['curl', '-fsSL', '--retry', '3', url], check=True, capture_output=True).stdout
+    if hashlib.sha256(data).hexdigest() != sha256:
+        sys.exit(f'{url}: sha256 does not match the pinned {sha256}')
+    target.write_bytes(data)
+
+
+# Python terminal: packages importable without a network (Pyodide builds; dependencies are added from its lock file)
+PYTHON_PACKAGES = ['numpy', 'pandas', 'matplotlib', 'scipy', 'statsmodels', 'sympy', 'networkx', 'pillow', 'regex', 'pyyaml',
+                   'beautifulsoup4', 'lxml', 'xlrd', 'micropip']
+# pure-Python wheels from PyPI for Office files, pinned by sha256 (openpyxl: Excel .xlsx; python-docx: Word .docx)
+PYPI_WHEELS = [
+    {'name': 'et-xmlfile', 'version': '2.0.0', 'imports': ['et_xmlfile'], 'depends': [],
+     'url': 'https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl',
+     'sha256': '7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa'},
+    {'name': 'openpyxl', 'version': '3.1.5', 'imports': ['openpyxl'], 'depends': ['et-xmlfile'],
+     'url': 'https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl',
+     'sha256': '5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2'},
+    {'name': 'python-docx', 'version': '1.2.0', 'imports': ['docx'], 'depends': ['lxml', 'typing-extensions'],
+     'url': 'https://files.pythonhosted.org/packages/d0/00/1e03a4989fa5795da308cd774f05b704ace555a70f9bf9d3be057b680bcf/python_docx-1.2.0-py3-none-any.whl',
+     'sha256': '3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7'},
+]
+# the only outside addresses a page here may contact: PyPI, for the online Python terminal (python/online.html)
+PYPI_ORIGINS = ('https://pypi.org', 'https://files.pythonhosted.org')
+CSP_CONNECT_META = '<meta name="inkdos-tools-connect" content="{}">'
 
 
 def build_squoosh(src: Path, dest: Path, tool: dict) -> None:
@@ -386,7 +450,8 @@ BUILDERS = {
 
 
 # Every page gets a Content-Security-Policy (GitHub Pages cannot send headers, so a <meta> first in <head>):
-# the tools run entirely in the browser, so nothing may be fetched from or sent to another site. Inline
+# the tools run entirely in the browser, so nothing may be fetched from or sent to another site (one exception:
+# python/online.html, the terminal the user opens to install packages, may reach PyPI; see page_csp). Inline
 # scripts are allowed only by their exact hash; WebAssembly is allowed, eval() is not. Audited per tool
 # (each one used under this policy without violations): ArchiveDrop, BentoPDF, CyberChef, IT-Tools,
 # Pyodide, WebODF, pnk and Squoosh.
@@ -401,7 +466,15 @@ def page_csp(html: str) -> str:
     hashes = sorted({"'sha256-" + base64.b64encode(hashlib.sha256(body.encode('utf-8')).digest()).decode() + "'"
                      for body in INLINE_SCRIPT.findall(html)})
     script = " ".join(["script-src 'self' 'wasm-unsafe-eval'", *hashes])
-    return "; ".join((CSP_BASE[0], script, *CSP_BASE[1:]))
+    policy = list(CSP_BASE[1:])
+    # a page may name outside origins it connects to (CSP_CONNECT_META); only PYPI_ORIGINS are accepted
+    marker = re.search(r'<meta name="inkdos-tools-connect" content="([^"]*)">', html)
+    if marker:
+        extra = marker.group(1).split()
+        if not extra or not set(extra) <= set(PYPI_ORIGINS):
+            sys.exit(f'connect-src exception not allowed: {extra}')
+        policy = [' '.join([d, *extra]) if d.startswith('connect-src ') else d for d in policy]
+    return "; ".join((CSP_BASE[0], script, *policy))
 
 
 def add_csp(page: Path) -> None:
