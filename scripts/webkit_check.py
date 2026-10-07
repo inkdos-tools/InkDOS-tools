@@ -9,6 +9,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 SITE = 'https://inkdos-tools.github.io/InkDOS-tools/'
+INKDOS = 'https://vfydr2m9wk-ops.github.io/InkDOS/'
 OUT = Path('webkit-report')
 
 
@@ -56,6 +57,48 @@ def main() -> int:
         log.append(f'url={page.url}; crossOriginIsolated={page.evaluate("self.crossOriginIsolated")}; '
                    f'file input={page.locator("#file-input").count()}')
         page.screenshot(path=str(OUT / 'word-to-pdf.png'))
+        # the InkDOS Home: Advanced tools -> PDF toolkit (a new tab) and a panel tool (a frame)
+        log.append('== InkDOS Home -> Advanced tools -> PDF toolkit')
+        home = context.new_page()
+        watch(home, log)
+        home.goto(INKDOS, wait_until='load')
+        home.wait_for_timeout(3000)
+        home.click('#advancedToolsButton')
+        home.wait_for_timeout(800)
+        try:
+            with context.expect_page(timeout=10000) as opened:
+                home.locator('.tools-item[data-tool-id="bentopdf"]').click()
+            tab = opened.value
+            watch(tab, log)
+            tab.wait_for_load_state('load')
+            tab.wait_for_timeout(6000)
+            log.append(f'new tab: {tab.url}; cards={tab.locator("a.tool-card").count()}')
+            tab.locator('a.tool-card[href*="merge-pdf"]').first.click()
+            tab.wait_for_timeout(5000)
+            log.append(f'after card click in new tab: {tab.url}')
+            tab.close()
+        except Exception as error:  # noqa: BLE001 - diagnostics
+            log.append(f'no new tab: {error}')
+        home.screenshot(path=str(OUT / 'home-after-pdf.png'))
+        # the toolkit framed by another origin (as in a web desktop or the InkDOS panel)
+        log.append('== PDF toolkit framed by another origin')
+        host = context.new_page()
+        watch(host, log)
+        host.goto(INKDOS, wait_until='load')
+        host.evaluate("""src => { document.body.innerHTML = ''; const f = document.createElement('iframe');
+            f.src = src; f.style.cssText = 'width:1000px;height:700px;border:0'; document.body.appendChild(f); }""",
+            SITE + 'bentopdf/')
+        host.wait_for_timeout(9000)
+        frame = next((f for f in host.frames if '/bentopdf/' in f.url), None)
+        if frame:
+            log.append(f'frame: {frame.url}; cards={frame.locator("a.tool-card").count()}')
+            card = frame.locator('a.tool-card[href*="merge-pdf"]').first
+            if card.count():
+                card.click()
+                host.wait_for_timeout(6000)
+                frame = next((f for f in host.frames if '/bentopdf/' in f.url), None)
+                log.append(f'after card click in frame: {frame.url if frame else None}')
+        host.screenshot(path=str(OUT / 'framed.png'))
         browser.close()
     text = '\n'.join(log)
     (OUT / 'report.txt').write_text(text + '\n', encoding='utf-8')
