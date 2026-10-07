@@ -57,6 +57,30 @@ def main() -> int:
         log.append(f'url={page.url}; crossOriginIsolated={page.evaluate("self.crossOriginIsolated")}; '
                    f'file input={page.locator("#file-input").count()}')
         page.screenshot(path=str(OUT / 'word-to-pdf.png'))
+        # iPhone, as in a user's screen recording: tap the first editor cards and follow every navigation
+        log.append('== iPhone: tap tool cards')
+        phone_ctx = browser.new_context(**pw.devices['iPhone 15 Pro'])
+        phone = phone_ctx.new_page()
+        watch(phone, log)
+        phone.goto(SITE + 'bentopdf/', wait_until='load')
+        phone.wait_for_timeout(6000)
+        log.append(f'phone url={phone.url}; isolated={phone.evaluate("self.crossOriginIsolated")}; '
+                   f'cards a={phone.locator("a.tool-card").count()} div={phone.locator("div.tool-card").count()}')
+        for name in ('edit-pdf', 'edit-pdf-text', 'merge-pdf', 'word-to-pdf'):
+            card = phone.locator(f'a.tool-card[href$="/{name}.html"]').first
+            if not card.count():
+                log.append(f'no card for {name}')
+                continue
+            card.scroll_into_view_if_needed()
+            card.tap()
+            for second in range(1, 9):
+                phone.wait_for_timeout(1000)
+                log.append(f'  {name} +{second}s url={phone.url}')
+            phone.screenshot(path=str(OUT / f'phone-{name}.png'))
+            if phone.url.rstrip('/').endswith('bentopdf') is False:
+                phone.goto(SITE + 'bentopdf/', wait_until='load')
+                phone.wait_for_timeout(3000)
+        phone_ctx.close()
         # the InkDOS Home: Advanced tools -> PDF toolkit (a new tab) and a panel tool (a frame)
         log.append('== InkDOS Home -> Advanced tools -> PDF toolkit')
         home = context.new_page()
