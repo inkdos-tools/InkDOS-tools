@@ -1,0 +1,74 @@
+// InkDOS-tools diagnostics: show on screen what happens when a PDF toolkit page runs in this browser (for browsers
+// where no developer tools are at hand, such as an iPad app). The page under test is loaded in a frame of the same
+// origin, so its errors, navigations and file picks can be watched from here. Nothing is sent anywhere.
+(function () {
+  'use strict';
+  const env = document.getElementById('env'), log = document.getElementById('log'), frame = document.getElementById('frame');
+  const t0 = Date.now(), lines = [];
+  function add(list, text, cls) {
+    const li = document.createElement('li'); li.textContent = text; if (cls) li.className = cls; list.appendChild(li);
+    lines.push((list === env ? '' : '+' + ((Date.now() - t0) / 1000).toFixed(1) + 's ') + text);
+  }
+  const note = (text, cls) => add(log, text, cls);
+  async function check(name, fn) {
+    try { const v = await fn(); add(env, name + ': ' + v, v === false || v === 'não' ? 'bad' : ''); }
+    catch (e) { add(env, name + ': ERRO ' + (e && e.message || e), 'bad'); }
+  }
+  (async () => {
+    await check('Navegador', () => navigator.userAgent);
+    await check('Service worker disponível', () => 'serviceWorker' in navigator ? 'sim' : 'não');
+    await check('Service worker do kit ativo', async () => {
+      if (!('serviceWorker' in navigator)) return 'não';
+      const reg = await navigator.serviceWorker.getRegistration('../bentopdf/');
+      return reg && reg.active ? 'sim (' + reg.scope + ')' : 'não';
+    });
+    await check('localStorage', () => { localStorage.setItem('inkdos-diag', '1'); localStorage.removeItem('inkdos-diag'); return 'sim'; });
+    await check('IndexedDB', () => new Promise((ok, bad) => { const r = indexedDB.open('inkdos-diag'); r.onsuccess = () => { r.result.close(); ok('sim'); }; r.onerror = () => bad(r.error); }));
+    await check('Cache Storage', async () => { await caches.keys(); return 'sim'; });
+    await check('Armazenamento', async () => {
+      if (!navigator.storage || !navigator.storage.estimate) return 'sem informação';
+      const e = await navigator.storage.estimate(), p = navigator.storage.persisted ? await navigator.storage.persisted() : '?';
+      return Math.round((e.usage || 0) / 1048576) + ' MB usados de ' + Math.round((e.quota || 0) / 1048576) + ' MB; permanente: ' + (p ? 'sim' : 'não');
+    });
+    await check('WebAssembly', () => typeof WebAssembly === 'object' ? 'sim' : 'não');
+    await check('Memória do aparelho (aprox.)', () => navigator.deviceMemory ? navigator.deviceMemory + ' GB' : 'sem informação');
+    await check('Dentro de outra página (frame)', () => window.top !== window ? 'sim' : 'não');
+  })();
+  addEventListener('error', (e) => note('Erro nesta página: ' + e.message, 'bad'));
+
+  let opened = '';
+  function instrument() {
+    let win, doc;
+    try { win = frame.contentWindow; doc = frame.contentDocument; } catch (e) { note('Frame de outra origem: ' + e.message, 'bad'); return; }
+    if (!win || !doc) return;
+    const url = String(win.location.href);
+    if (url === 'about:blank') return;
+    note('Carregou: ' + url.replace(location.origin, ''), url.includes(opened.replace('..', '')) ? 'ok' : '');
+    win.addEventListener('error', (e) => note('Erro: ' + e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : ''), 'bad'));
+    win.addEventListener('unhandledrejection', (e) => note('Erro (promessa): ' + (e.reason && (e.reason.message || e.reason)), 'bad'));
+    win.addEventListener('beforeunload', () => note('A página vai sair: ' + String(win.location.href).replace(location.origin, '')));
+    win.addEventListener('pagehide', () => note('A página foi fechada/trocada'));
+    doc.addEventListener('change', (e) => {
+      const input = e.target;
+      if (input && input.type === 'file') note('Arquivo escolhido: ' + [...(input.files || [])].map((f) => f.name + ' (' + f.size + ' bytes)').join(', '), 'ok');
+    }, true);
+    doc.addEventListener('click', (e) => {
+      const a = e.target && e.target.closest && e.target.closest('a,button');
+      if (a) note('Toque em: ' + (a.getAttribute('href') || a.id || a.textContent.trim().slice(0, 40)));
+    }, true);
+    const origError = win.console.error;
+    win.console.error = function () { note('console.error: ' + [...arguments].map(String).join(' ').slice(0, 300), 'bad'); return origError.apply(this, arguments); };
+    // the page's text, a few seconds later, to see whether the tool shows the file
+    setTimeout(() => { try { const text = doc.body.innerText; const m = text.match(/\d+ (pages|páginas)/); if (m) note('A ferramenta mostra: ' + m[0], 'ok'); } catch (_) {} }, 4000);
+  }
+  frame.addEventListener('load', instrument);
+  document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {
+    opened = b.dataset.open; note('Abrindo ' + opened.replace('../', ''));
+    frame.src = opened;
+  }));
+  document.getElementById('copy').addEventListener('click', async () => {
+    const text = lines.join('\n');
+    try { await navigator.clipboard.writeText(text); note('Relatório copiado', 'ok'); }
+    catch (_) { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); note('Relatório copiado', 'ok'); } catch (__) { note('Não foi possível copiar; tire um print', 'bad'); } t.remove(); }
+  });
+})();
