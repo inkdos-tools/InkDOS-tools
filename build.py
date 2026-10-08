@@ -341,6 +341,14 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
                            page.read_text(encoding='utf-8'), count=1, flags=re.S)
             page.write_text(title, encoding='utf-8')
             inkdos_skin(page, tool['id'])
+    # the PDF.js viewer opens a file handed over by the InkDOS Office Home (its PDF card)
+    viewer = dest / 'pdfjs-viewer' / 'viewer.html'
+    handoff = f'<script src="{BASE}viewers/file-handoff.js" data-mode="pdfjs"></script>'
+    text = viewer.read_text(encoding='utf-8')
+    if '</body>' not in text:
+        sys.exit('bentopdf: pdfjs-viewer/viewer.html has no </body>')
+    if handoff not in text:
+        viewer.write_text(text.replace('</body>', handoff + '</body>', 1), encoding='utf-8')
     # every file the toolkit uses, for "Download all" on the InkDOS Office Home: it stores them in the project's
     # cache ahead of use (the Office/ODF converters, LibreOffice, are a group of their own: large)
     cache = re.search(r"const CACHE_VERSION = '([^']+)'", sw.read_text(encoding='utf-8'))
@@ -350,7 +358,8 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
              for rel in sorted(path.relative_to(dest).as_posix() for path in dest.rglob('*') if path.is_file())
              if rel not in ('sw.js', OFFLINE_LIST) and not rel.endswith('.map') and not precompressed_copy(dest / rel)]
     files += [{'url': BASE + rel, 'size': 0, 'group': 'pdf'} for rel in
-              ('skins/inkdos.css', f"skins/{tool['id']}.css", 'viewers/viewer-theme.js', 'viewers/download-fallback.js')]
+              ('skins/inkdos.css', f"skins/{tool['id']}.css", 'viewers/viewer-theme.js', 'viewers/download-fallback.js',
+               'viewers/file-handoff.js')]
     offline_list(dest, {'cache': cache.group(1) + '-static', 'worker': base + 'sw.js', 'scope': base, 'files': files})
 
 
@@ -581,6 +590,76 @@ def build_pptx(src: Path, dest: Path, tool: dict) -> None:
     copy_files(ROOT / 'site-src' / 'pptx', dest, ['index.html', 'viewer.js', 'viewer.css'])
 
 
+def small_tool_offline(dest: Path, tool: dict, extra: list[str]) -> None:
+    """A tool without a worker of its own: site-src/viewers/offline-sw.js keeps every file of its folder (and the
+    shared files its pages load) on the device, and inkdos-offline.json lists them for Download all."""
+    scope = f"{BASE}{tool['id']}/"
+    rels = sorted(path.relative_to(dest).as_posix() for path in dest.rglob('*') if path.is_file()
+                  and path.suffix not in ('.map', '.md', '.txt') and not path.name.endswith('.d.ts'))
+    files = ['./', *rels, *extra]
+    digest = hashlib.sha256(json.dumps(files).encode())
+    for rel in rels:
+        digest.update((dest / rel).read_bytes())
+    stamp = digest.hexdigest()[:16]
+    sw = (ROOT / 'site-src' / 'viewers' / 'offline-sw.js').read_text(encoding='utf-8')
+    (dest / 'sw.js').write_text(sw.replace('__PREFIX__', f"inkdos-{tool['id']}-").replace('__VERSION__', stamp)
+                                .replace('__FILES__', json.dumps(files)), encoding='utf-8')
+    offline_list(dest, {'cache': f"inkdos-{tool['id']}-{stamp}", 'worker': scope + 'sw.js', 'scope': scope,
+                        'files': [{'url': scope if f == './' else scope + f, 'size': (dest / f).stat().st_size if (dest / f).is_file() else 0}
+                                  for f in files]})
+
+
+# the page registers its worker (offline) and takes a file handed over by the InkDOS Office Home
+SMALL_TOOL_SCRIPTS = ('<script src="../viewers/file-handoff.js" data-input="{input}"></script>'
+                      "<script src=\"../viewers/register-sw.js\"></script>")
+
+
+def build_epub(src: Path, dest: Path, tool: dict) -> None:
+    # foliate-js (the reader library of the Foliate app) runs as is, ES modules with its vendored zip.js/fflate/PDF.js;
+    # its reader.html is the reader page (index.html here)
+    for item in src.iterdir():
+        if item.name.startswith('.') or item.name in ('tests', 'rollup', 'rollup.config.js', 'eslint.config.js', 'package.json',
+                                                      'package-lock.json', 'README.md'):
+            continue
+        (shutil.copytree if item.is_dir() else shutil.copy2)(item, dest / item.name)
+    page = (dest / 'reader.html').read_text(encoding='utf-8')
+    if 'id="file-input"' not in page:
+        sys.exit('epub: reader.html has no #file-input')
+    page += SMALL_TOOL_SCRIPTS.format(input='#file-input')  # the page leaves </body> implicit
+    (dest / 'index.html').write_text(page, encoding='utf-8')
+    (dest / 'reader.html').unlink()  # the reader keeps its own look (light/dark from the system)
+    small_tool_offline(dest, tool, ['../viewers/file-handoff.js', '../viewers/register-sw.js'])
+
+
+CODEMIRROR_VERSION = '5.65.21'
+
+
+def build_txt(src: Path, dest: Path, tool: dict) -> None:
+    # CodeMirror 5 (the pinned tag's npm release: lib/ is built there) and the InkDOS page around it (site-src/txt/)
+    packs = src.parent / f"{tool['id']}-packs"
+    for tgz in npm_pack([f'codemirror@{CODEMIRROR_VERSION}'], packs):
+        untar(tgz, dest / 'pkg')
+    for part in ('lib', 'addon', 'mode', 'LICENSE'):
+        source = dest / 'pkg' / part
+        (shutil.copytree if source.is_dir() else shutil.copy2)(source, dest / 'cm' / part)
+    shutil.rmtree(dest / 'pkg')
+    copy_files(ROOT / 'site-src' / 'txt', dest, ['index.html', 'txt.js', 'txt.css'])
+    page = (dest / 'index.html').read_text(encoding='utf-8')
+    used = set(re.findall(r'(?:src|href)="\./(cm/[^"]+)"', page)) | {'cm/LICENSE'}
+    for rel in used:
+        if not (dest / rel).is_file():
+            sys.exit(f'txt: {rel} is not in CodeMirror {CODEMIRROR_VERSION}')
+    for path in sorted((dest / 'cm').rglob('*'), reverse=True):  # only what the page loads
+        if path.is_file() and path.relative_to(dest).as_posix() not in used:
+            path.unlink()
+        elif path.is_dir() and not any(path.iterdir()):
+            path.rmdir()
+    (dest / 'index.html').write_text(page.replace('</body>', SMALL_TOOL_SCRIPTS.format(input='#file-input') + '</body>', 1), encoding='utf-8')
+    inkdos_skin(dest / 'index.html', tool['id'])
+    small_tool_offline(dest, tool, ['../viewers/file-handoff.js', '../viewers/register-sw.js', '../viewers/viewer-theme.js',
+                                    '../skins/inkdos.css', f"../skins/{tool['id']}.css"])
+
+
 BUILDERS = {
     'archivedrop': build_archivedrop,
     'cyberchef': build_cyberchef,
@@ -592,6 +671,8 @@ BUILDERS = {
     'squoosh': build_squoosh,
     'docx': build_docx,
     'pptx': build_pptx,
+    'epub': build_epub,
+    'txt': build_txt,
 }
 
 

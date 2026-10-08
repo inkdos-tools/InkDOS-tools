@@ -110,6 +110,28 @@
       "ref": "0cf5c194b4db2cf9f2531b6a7e24a61338caabf1",
       "license": "Apache-2.0",
       "license_file": "LICENSE"
+    },
+    {
+      "id": "epub",
+      "name": "foliate-js",
+      "title": "EPUB reader",
+      "group": "Reading",
+      "description": "Read EPUB, MOBI, KF8, FB2 and CBZ books on this device (foliate-js, the reader of the Foliate app).",
+      "repo": "https://github.com/johnfactotum/foliate-js",
+      "ref": "78914aef4466eb960965702401634c2cb348e9b1",
+      "license": "MIT",
+      "license_file": "LICENSE"
+    },
+    {
+      "id": "txt",
+      "name": "CodeMirror",
+      "title": "Plain text editor",
+      "group": "Reading",
+      "description": "Open, edit and save plain-text, Markdown, JSON, YAML and other text files on this device (CodeMirror 5).",
+      "repo": "https://github.com/codemirror/codemirror5",
+      "ref": "e1ce7619cf05f63e74fcd191553dd20e1ccc8e58",
+      "license": "MIT",
+      "license_file": "LICENSE"
     }
   ]
 }
