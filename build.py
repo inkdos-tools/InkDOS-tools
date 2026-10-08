@@ -290,6 +290,10 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
         text = page.read_text(encoding='utf-8')
         if base + page.name in coi_pages and page.parent == dest and '<head>' in text and reload not in text:
             page.write_text(text.replace('<head>', '<head>' + reload, 1), encoding='utf-8')
+        text = page.read_text(encoding='utf-8')
+        if '<head>' in text and BFCACHE_OFF not in text:
+            text = text.replace('<head>', '<head>' + BFCACHE_OFF, 1)
+            page.write_text(text, encoding='utf-8')
         if '<head>' in text and '</head>' in text:
             # page titles name the upstream brand directly (the branding options cover header and footer)
             title = re.sub(r'<title>(.*?)</title>', lambda m: m.group(0).replace('BentoPDF', 'InkDOS PDF'),
@@ -305,6 +309,12 @@ def needs_isolation(page: Path, dest: Path, base: str) -> bool:
         return False
     script = dest / entry.group(1)[len(base):]
     return script.is_file() and b'libreoffice' in script.read_bytes()
+
+
+# BentoPDF pages are large (the start page lists 130 tools with a 3 MB icon set). On iPad/iPhone, opening a tool from
+# such a page kept the previous page alive in the back-forward cache and the new one went straight back to the list
+# (or froze); an unload listener makes Safari drop the previous page instead of caching it.
+BFCACHE_OFF = "<script>/* InkDOS-tools: no back-forward cache (memory on iPad) */addEventListener('unload',function(){})</script>"
 
 
 COI_PRELUDE = """// InkDOS-tools: add cross-origin isolation headers to the pages that load LibreOffice WASM and to worker scripts
