@@ -273,6 +273,16 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
          "      window.location.reload();",
          "      console.log('[SW] New service worker activated'); // InkDOS-tools: no reload (it cancelled a tool being opened)"),
     ])
+    # The project's own host serves every page under /<lang>/ too (pt/split-pdf.html); GitHub Pages cannot, so in a
+    # browser set to another language than English every tool link led to a missing page and the 404 page sent the
+    # user back to the list (Split PDF on an iPad in Portuguese). Links keep their plain address and the language
+    # comes from storage and the browser, as on the start page.
+    patch(src / 'src/js/i18n/i18n.ts', [
+        ("  if (currentLang === 'en') return;\n",
+         "  if (currentLang) return; // InkDOS-tools: no /<lang>/ pages on GitHub Pages, links stay as they are\n"),
+        ("    newRelativePath = `/${lang}${pagePathWithoutLang}`;",
+         "    newRelativePath = pagePathWithoutLang; // InkDOS-tools: no /<lang>/ pages; the language is stored"),
+    ])
     run(['npm', 'ci', '--no-audit', '--no-fund'], src, env={'HUSKY': '0'})
     run(['npx', 'vite', 'build'], src, env=env)
     shutil.copytree(src / 'dist', dest, dirs_exist_ok=True)
@@ -600,6 +610,9 @@ def write_index(out: Path, tools: list[dict]) -> None:
         '<!doctype html><head><meta charset="utf-8"><title>InkDOS tools</title></head>\n'
         f'<script>(function(){{var base={json.dumps(BASE)},ids={ids},rest=location.pathname.indexOf(base)===0?'
         'location.pathname.slice(base.length):"",id=rest.split("/")[0];'
+        # an old /<lang>/ address of the PDF toolkit (see build_bentopdf) opens the page itself
+        'var lang=/^bentopdf\\/(?:en|ar|fr|es|de|zh|zh-TW|vi|tr|id|it|pt|nl|be|da|ko|sv|ru|ja|uk|sk)\\/(.*)$/.exec(rest);'
+        'if(lang){location.replace(base+"bentopdf/"+lang[1]+location.search+location.hash);return}'
         'location.replace(base+(ids.indexOf(id)>=0?id+"/":""))})()</script>\n', encoding='utf-8')
 
 
