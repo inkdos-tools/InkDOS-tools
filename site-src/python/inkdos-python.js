@@ -1,6 +1,7 @@
 // InkDOS additions to the Pyodide console (python/index.html and python/online.html): a bar to open files from
-// this device into Python's file system and to save files from it, and the switch between the offline terminal
-// and the online one (which may install packages from PyPI). Pyodide's own console code is unchanged.
+// this device into Python's file system and to save files from it, the switch between the offline terminal and
+// the online one (which may install packages from PyPI) and, on touch screens, a visible command line (below).
+// Pyodide's own console code is unchanged.
 (function () {
   'use strict';
   const doc = document;
@@ -32,12 +33,44 @@
     if (ok) location.href = withTheme('./online.html');
   });
 
+  // On a touch screen the terminal's own input is a hidden text box; some iPad web views (XeOS) do not bring up the
+  // on-screen keyboard for it, so typing does nothing. This visible command line runs each line in the terminal.
+  const TOUCH = navigator.maxTouchPoints > 0;
+  const line = doc.createElement('form');
+  line.id = 'inkdos-python-line';
+  line.innerHTML = '<input type="text" disabled autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"'
+    + ' enterkeyhint="send" aria-label="Python command" placeholder="Type Python here, e.g. 6*7">'
+    + '<button type="button" data-up disabled aria-label="Previous command">↑</button>'
+    + '<button type="submit" disabled>Run</button>';
+  const input = line.querySelector('input');
+  const history = [];
+  let back = 0;
+  function enableLine(term) {
+    line.querySelectorAll('input, button').forEach((el) => { el.disabled = false; });
+    line.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const command = input.value;
+      if (command.trim()) { history.push(command); }
+      back = 0;
+      input.value = '';
+      term.exec(command);
+      input.focus();
+    });
+    line.querySelector('[data-up]').addEventListener('click', () => {
+      if (!history.length) return;
+      back = Math.min(back + 1, history.length);
+      input.value = history[history.length - back];
+      input.focus();
+    });
+  }
+
   let lastName = '';
   function ready() {
     const term = globalThis.term, py = globalThis.pyodide;
     if (!term || !py || !py.FS) return setTimeout(ready, 200);
     keepFiles(py, term);
     bar.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+    if (TOUCH) enableLine(term);
     term.echo(safe(ONLINE
       ? 'InkDOS online terminal: import micropip, then await micropip.install("package-name") (pure-Python packages from PyPI).'
       : 'InkDOS: numpy, pandas, matplotlib, scipy, statsmodels, sympy, networkx, pillow, openpyxl, python-docx and more load on import.'));
@@ -104,6 +137,11 @@
     navigator.serviceWorker.register('./sw.js').catch(() => {});
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (_) {}
   }
-  function install() { doc.body.appendChild(bar); doc.documentElement.classList.add('inkdos-python'); ready(); keepOffline(); }
+  function install() {
+    doc.body.appendChild(bar);
+    doc.documentElement.classList.add('inkdos-python');
+    if (TOUCH) { doc.body.appendChild(line); doc.documentElement.classList.add('inkdos-python-touch'); }
+    ready(); keepOffline();
+  }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', install, { once: true }); else install();
 })();
