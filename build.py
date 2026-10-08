@@ -314,6 +314,15 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
         sys.exit('bentopdf: no page loads LibreOffice; the isolation list would be empty')
     sw = dest / 'sw.js'
     sw.write_text(COI_PRELUDE.replace('__COI_PAGES_JSON__', json.dumps(coi_pages)) + sw.read_text(encoding='utf-8'), encoding='utf-8')
+    # offline: pages stored without their query (?inkdos-theme=) still answer for it, and the files the project's
+    # worker leaves to the network (OCR data and other extensions it does not list) are kept the same way as pages
+    patch(sw, [
+        ('    const cachedResponse = await caches.match(request);\n',
+         '    const cachedResponse = await caches.match(request, { ignoreSearch: true });\n'),
+        ('    event.respondWith(networkFirstStrategy(event.request));\n  }\n});',
+         '    event.respondWith(networkFirstStrategy(event.request));\n  } else if (isLocal) {\n'
+         '    event.respondWith(networkFirstStrategy(event.request));\n  }\n});'),
+    ])
     reload = COI_RELOAD.replace('SW_URL', json.dumps(base + 'sw.js'))
     for page in dest.rglob('*.html'):
         text = page.read_text(encoding='utf-8')
@@ -332,6 +341,32 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
                            page.read_text(encoding='utf-8'), count=1, flags=re.S)
             page.write_text(title, encoding='utf-8')
             inkdos_skin(page, tool['id'])
+    # every file the toolkit uses, for "Download all" on the InkDOS Office Home: it stores them in the project's
+    # cache ahead of use (the Office/ODF converters, LibreOffice, are a group of their own: large)
+    cache = re.search(r"const CACHE_VERSION = '([^']+)'", sw.read_text(encoding='utf-8'))
+    if not cache:
+        sys.exit('bentopdf: sw.js names no CACHE_VERSION; the offline list would not reach its cache')
+    files = [{'url': base + rel, 'size': (dest / rel).stat().st_size, 'group': 'office' if rel.startswith('libreoffice-wasm/') else 'pdf'}
+             for rel in sorted(path.relative_to(dest).as_posix() for path in dest.rglob('*') if path.is_file())
+             if rel not in ('sw.js', OFFLINE_LIST) and not rel.endswith('.map') and not precompressed_copy(dest / rel)]
+    files += [{'url': BASE + rel, 'size': 0, 'group': 'pdf'} for rel in
+              ('skins/inkdos.css', f"skins/{tool['id']}.css", 'viewers/viewer-theme.js', 'viewers/download-fallback.js')]
+    offline_list(dest, {'cache': cache.group(1) + '-static', 'worker': base + 'sw.js', 'scope': base, 'files': files})
+
+
+# "Download all" on the InkDOS Office Home (inkdos-tools.github.io, same origin) reads <tool>/inkdos-offline.json:
+# the worker that serves the tool offline, its cache and the files to keep there
+OFFLINE_LIST = 'inkdos-offline.json'
+
+
+def precompressed_copy(path: Path) -> bool:
+    """x.gz / x.br next to x: a copy for servers that send precompressed files (GitHub Pages does not), never loaded.
+    LibreOffice's .gz files have no plain sibling: the converter loads those itself."""
+    return path.suffix in ('.gz', '.br') and path.with_suffix('').is_file()
+
+
+def offline_list(dest: Path, data: dict) -> None:
+    (dest / OFFLINE_LIST).write_text(json.dumps(data, separators=(',', ':')), encoding='utf-8')
 
 
 def needs_isolation(page: Path, dest: Path, base: str) -> bool:
@@ -365,7 +400,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith((async () => {
     let response;
     try { response = await fetch(request); if (response.ok) (await caches.open('inkdos-tools-pages')).put(request, response.clone()); }
-    catch (error) { response = await caches.match(request); if (!response) throw error; }
+    catch (error) { response = await caches.match(request, { ignoreSearch: true }); if (!response) throw error; }
     if (!response || response.type === 'opaqueredirect' || response.status === 0) return response;
     const headers = new Headers(response.headers);
     headers.set('Cross-Origin-Opener-Policy', 'same-origin');
@@ -451,6 +486,10 @@ def build_python(src: Path, dest: Path, tool: dict) -> None:
     sw = (ROOT / 'site-src' / 'python' / 'sw.js').read_text(encoding='utf-8')
     (dest / 'sw.js').write_text(sw.replace('__VERSION__', stamp).replace('__CORE__', json.dumps(core))
                                 .replace('__PACKAGES__', json.dumps(files)), encoding='utf-8')
+    scope = f"{BASE}{tool['id']}/"
+    offline_list(dest, {'cache': 'inkdos-python-' + stamp, 'worker': scope + 'sw.js', 'scope': scope,
+                        'files': [{'url': scope + f if f != './' else scope, 'size': (dest / f).stat().st_size if (dest / f).is_file() else 0}
+                                  for f in core + files]})
 
 
 def fetch_checked(url: str, sha256: str, target: Path) -> None:
