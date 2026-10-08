@@ -21,7 +21,10 @@ jobs:
         run: |
           pip install playwright==1.55.0
           python -m playwright install --with-deps webkit
+      - name: Split PDF on every path (toolkit, InkDOS panel with new tabs blocked, new tab)
+        run: python scripts/webkit_split_check.py
       - name: Check the published site
+        if: always()
         run: python scripts/webkit_check.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
