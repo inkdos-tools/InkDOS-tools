@@ -20,6 +20,8 @@ together with its licence (`UPSTREAM-LICENSE.txt`) and source reference (`UPSTRE
 | Python terminal (numpy, pandas, matplotlib…) | [Pyodide](https://github.com/pyodide/pyodide) console | MPL-2.0 |
 | OpenDocument viewer (.odt/.ods/.odp) | [WebODF](https://github.com/kogmbh/WebODF) | AGPL-3.0 |
 | Image converter and compressor | [Squoosh](https://github.com/GoogleChromeLabs/squoosh) | Apache-2.0 |
+| Word document viewer (.docx, layout of the file) | [docx-preview](https://github.com/VolodymyrBaydalka/docxjs) with [JSZip](https://github.com/Stuk/jszip) | Apache-2.0 / MIT |
+| PowerPoint viewer (.pptx, layout of the file) | [pptx-renderer](https://github.com/aiden0z/pptx-renderer) | Apache-2.0 |
 
 Changes to upstream are limited to what `build.py` states next to each builder: pnk's optional
 Google Fonts substitutes are off by default (the setting stays in the viewer), so no tool makes a
@@ -42,6 +44,9 @@ network request unless the user turns one on.
   each checked by sha256) are served from `python/` and load on import, offline. An InkDOS bar opens files
   from the device into Python and saves files back. `python/online.html` is the same terminal allowed to
   reach PyPI, so `micropip.install()` works there (the user is asked first); see `SECURITY.md`.
+- **Faithful views for InkDOS Documents and Presentations**: `docx/` (docx-preview) and `pptx/`
+  (pptx-renderer's standalone browser build, without PDF.js) show a file with its own page or slide layout,
+  read only, standalone or embedded by an InkDOS workspace with the same viewer protocol as `odf/` and `pnk/`.
 - **Squoosh** is served from `squoosh/` instead of the site root; its Google Analytics script and its
   offline service worker are left out.
 

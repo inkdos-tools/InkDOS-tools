@@ -88,6 +88,28 @@
       "ref": "e8d35e0fb66eb16eff6fe8fc773eabcbb7128de3",
       "license": "Apache-2.0",
       "license_file": "LICENSE"
+    },
+    {
+      "id": "docx",
+      "name": "docx-preview",
+      "title": "Word document viewer",
+      "group": "View",
+      "description": "View .docx files with their page layout, headers, footers, tables and images (view only).",
+      "repo": "https://github.com/VolodymyrBaydalka/docxjs",
+      "ref": "c533f383069008d4a1e05c6171ef8777fd078385",
+      "license": "Apache-2.0",
+      "license_file": "LICENSE"
+    },
+    {
+      "id": "pptx",
+      "name": "pptx-renderer",
+      "title": "PowerPoint viewer",
+      "group": "View",
+      "description": "View .pptx slides with their layout, shapes, charts and images (view only).",
+      "repo": "https://github.com/aiden0z/pptx-renderer",
+      "ref": "0cf5c194b4db2cf9f2531b6a7e24a61338caabf1",
+      "license": "Apache-2.0",
+      "license_file": "LICENSE"
     }
   ]
 }

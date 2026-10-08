@@ -25,6 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 MANIFEST = json.loads((ROOT / 'tools.json').read_text(encoding='utf-8'))
 BASE = MANIFEST['base']
+JSZIP_VERSION = '3.10.1'
 
 
 def run(cmd: list[str], cwd: Path, env: dict | None = None) -> None:
@@ -465,6 +466,33 @@ def build_squoosh(src: Path, dest: Path, tool: dict) -> None:
     inkdos_skin(dest / 'index.html', tool['id'])
 
 
+def build_docx(src: Path, dest: Path, tool: dict) -> None:
+    # docx-preview's own build is committed with the pinned release (dist/); it needs JSZip as a global, served
+    # next to it from the npm package (MIT, dual-licensed with GPL-3.0). The viewer page is site-src/docx/.
+    shutil.copy2(src / 'dist' / 'docx-preview.min.js', dest / 'docx-preview.min.js')
+    packs = src.parent / f"{tool['id']}-packs"
+    for tgz in npm_pack([f'jszip@{JSZIP_VERSION}'], packs):
+        untar(tgz, dest / 'jszip-pkg')
+    shutil.copy2(dest / 'jszip-pkg' / 'dist' / 'jszip.min.js', dest / 'jszip.min.js')
+    shutil.copy2(dest / 'jszip-pkg' / 'LICENSE.markdown', dest / 'JSZIP-LICENSE.txt')
+    shutil.rmtree(dest / 'jszip-pkg')
+    copy_files(ROOT / 'site-src' / 'docx', dest, ['index.html', 'viewer.js', 'viewer.css'])
+
+
+def build_pptx(src: Path, dest: Path, tool: dict) -> None:
+    # pptx-renderer's standalone browser build (JSZip and ECharts bundled, no PDF.js) from the npm release of the
+    # pinned tag; its third-party notices and licences go with it. The viewer page is site-src/pptx/.
+    version = json.loads((src / 'package.json').read_text(encoding='utf-8'))['version']
+    packs = src.parent / f"{tool['id']}-packs"
+    for tgz in npm_pack([f"@aiden0z/pptx-renderer@{version}"], packs):
+        untar(tgz, dest / 'pkg')
+    shutil.copy2(dest / 'pkg' / 'dist' / 'aiden0z-pptx-renderer.browser.es.js', dest / 'pptx-renderer.js')
+    shutil.copy2(dest / 'pkg' / 'THIRD_PARTY_NOTICES.md', dest / 'THIRD_PARTY_NOTICES.md')
+    shutil.copytree(dest / 'pkg' / 'licenses', dest / 'licenses')
+    shutil.rmtree(dest / 'pkg')
+    copy_files(ROOT / 'site-src' / 'pptx', dest, ['index.html', 'viewer.js', 'viewer.css'])
+
+
 BUILDERS = {
     'archivedrop': build_archivedrop,
     'cyberchef': build_cyberchef,
@@ -474,6 +502,8 @@ BUILDERS = {
     'python': build_python,
     'odf': build_odf,
     'squoosh': build_squoosh,
+    'docx': build_docx,
+    'pptx': build_pptx,
 }
 
 
@@ -482,7 +512,7 @@ BUILDERS = {
 # python/online.html, the terminal the user opens to install packages, may reach PyPI; see page_csp). Inline
 # scripts are allowed only by their exact hash; WebAssembly is allowed, eval() is not. Audited per tool
 # (each one used under this policy without violations): ArchiveDrop, BentoPDF, CyberChef, IT-Tools,
-# Pyodide, WebODF, pnk and Squoosh.
+# Pyodide, WebODF, pnk, Squoosh, docx-preview and pptx-renderer.
 CSP_BASE = ("default-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self' data:",
             "connect-src 'self' data: blob:", "worker-src 'self' blob:", "frame-src 'self' blob:", "media-src 'self' data: blob:",
             "object-src 'none'", "base-uri 'self'", "form-action 'none'")
