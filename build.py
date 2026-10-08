@@ -255,6 +255,24 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
         'VITE_FOOTER_TEXT': f"Based on BentoPDF ({tool['license']}), source: {tool['repo']}",
     }
     shutil.copy2(ROOT / 'site-src' / 'skins' / 'pdf.svg', src / 'public' / 'images' / 'inkdos-pdf.svg')
+    # The start page reloaded itself when its service worker took control (first visit, and after every deploy of
+    # this site), and a new worker asked to reload too: a tool tapped meanwhile (slow on iPad/iPhone) was cancelled
+    # by that reload and the user landed back on the list. The worker activates on its own (skipWaiting, claim) and
+    # pages work without it, so the start page no longer reloads for it.
+    patch(src / 'src/js/sw-register.ts', [
+        ("                if (\n"
+         "                  confirm(\n"
+         "                    'A new version of BentoPDF is available. Reload to update?'\n"
+         "                  )\n"
+         "                ) {\n"
+         "                  newWorker.postMessage({ type: 'SKIP_WAITING' });\n"
+         "                  window.location.reload();\n"
+         "                }",
+         "                newWorker.postMessage({ type: 'SKIP_WAITING' }); // InkDOS-tools: no reload prompt"),
+        ("      console.log('[SW] New service worker activated, reloading...');\n"
+         "      window.location.reload();",
+         "      console.log('[SW] New service worker activated'); // InkDOS-tools: no reload (it cancelled a tool being opened)"),
+    ])
     run(['npm', 'ci', '--no-audit', '--no-fund'], src, env={'HUSKY': '0'})
     run(['npx', 'vite', 'build'], src, env=env)
     shutil.copytree(src / 'dist', dest, dirs_exist_ok=True)
