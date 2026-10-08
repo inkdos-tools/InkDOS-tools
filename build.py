@@ -420,6 +420,20 @@ def build_python(src: Path, dest: Path, tool: dict) -> None:
     online = console.replace('<html>', '<html data-inkdos-python="online">', 1).replace(
         '<head>', '<head>' + CSP_CONNECT_META.format(' '.join(PYPI_ORIGINS)), 1)
     (dest / 'online.html').write_text(online, encoding='utf-8')
+    # service worker: the terminal and every bundled package stay on the device (site-src/python/sw.js)
+    core = ['./', 'index.html', 'online.html', 'inkdos-python.js', 'pyodide.mjs', 'pyodide.asm.mjs', 'pyodide.asm.wasm',
+            'python_stdlib.zip', 'pyodide-lock.json', 'vendor/jquery/dist/jquery.min.js',
+            'vendor/jquery.terminal/js/jquery.terminal.min.js',
+            'vendor/jquery.terminal/css/jquery.terminal.min.css', 'vendor/idb-keyval/dist/esm/index.js',
+            '../viewers/viewer-theme.js', '../skins/inkdos.css', f"../skins/{tool['id']}.css"]
+    for file in core[1:]:
+        if not file.startswith('../') and not (dest / file).is_file():
+            sys.exit(f'python: {file} is not in the build; the offline list would be incomplete')
+    files = sorted({packages[name]['file_name'] for name in wanted} | {w['url'].rsplit('/', 1)[1] for w in PYPI_WHEELS})
+    stamp = hashlib.sha256(json.dumps([version, files, (ROOT / 'site-src' / 'python' / 'inkdos-python.js').read_text(encoding='utf-8')]).encode()).hexdigest()[:16]
+    sw = (ROOT / 'site-src' / 'python' / 'sw.js').read_text(encoding='utf-8')
+    (dest / 'sw.js').write_text(sw.replace('__VERSION__', stamp).replace('__CORE__', json.dumps(core))
+                                .replace('__PACKAGES__', json.dumps(files)), encoding='utf-8')
 
 
 def fetch_checked(url: str, sha256: str, target: Path) -> None:
