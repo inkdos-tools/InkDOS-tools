@@ -323,6 +323,9 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
         if '<head>' in text and BFCACHE_OFF not in text:
             text = text.replace('<head>', '<head>' + BFCACHE_OFF, 1)
             page.write_text(text, encoding='utf-8')
+        if '<head>' in text and DOWNLOAD_PANEL not in text:
+            text = text.replace('<head>', '<head>' + DOWNLOAD_PANEL, 1)
+            page.write_text(text, encoding='utf-8')
         if '<head>' in text and '</head>' in text:
             # page titles name the upstream brand directly (the branding options cover header and footer)
             title = re.sub(r'<title>(.*?)</title>', lambda m: m.group(0).replace('BentoPDF', 'InkDOS PDF'),
@@ -344,6 +347,9 @@ def needs_isolation(page: Path, dest: Path, base: str) -> bool:
 # such a page kept the previous page alive in the back-forward cache and the new one went straight back to the list
 # (or froze); an unload listener makes Safari drop the previous page instead of caching it.
 BFCACHE_OFF = "<script>/* InkDOS-tools: no back-forward cache (memory on iPad) */addEventListener('unload',function(){})</script>"
+# Tools hand their result over as a download; in-app browsers on iPad (XeOS) do not save those, so the result is
+# offered in a panel with the share sheet and Open there (site-src/viewers/download-fallback.js).
+DOWNLOAD_PANEL = f'<script src="{BASE}viewers/download-fallback.js"></script>'
 
 
 COI_PRELUDE = """// InkDOS-tools: add cross-origin isolation headers to the pages that load LibreOffice WASM and to worker scripts
@@ -426,6 +432,7 @@ def build_python(src: Path, dest: Path, tool: dict) -> None:
     if '</body>' not in console:
         sys.exit(f'{dest / "index.html"}: no </body> for the InkDOS bar')
     console = console.replace('</body>', '<script src="./inkdos-python.js"></script></body>', 1)
+    console = console.replace('<head>', '<head>' + DOWNLOAD_PANEL, 1)  # Save file is a download too
     (dest / 'index.html').write_text(console.replace('<html>', '<html data-inkdos-python="offline">', 1), encoding='utf-8')
     online = console.replace('<html>', '<html data-inkdos-python="online">', 1).replace(
         '<head>', '<head>' + CSP_CONNECT_META.format(' '.join(PYPI_ORIGINS)), 1)
@@ -435,7 +442,7 @@ def build_python(src: Path, dest: Path, tool: dict) -> None:
             'python_stdlib.zip', 'pyodide-lock.json', 'vendor/jquery/dist/jquery.min.js',
             'vendor/jquery.terminal/js/jquery.terminal.min.js',
             'vendor/jquery.terminal/css/jquery.terminal.min.css', 'vendor/idb-keyval/dist/esm/index.js',
-            '../viewers/viewer-theme.js', '../skins/inkdos.css', f"../skins/{tool['id']}.css"]
+            '../viewers/viewer-theme.js', '../viewers/download-fallback.js', '../skins/inkdos.css', f"../skins/{tool['id']}.css"]
     for file in core[1:]:
         if not file.startswith('../') and not (dest / file).is_file():
             sys.exit(f'python: {file} is not in the build; the offline list would be incomplete')
