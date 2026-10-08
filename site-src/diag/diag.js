@@ -45,6 +45,21 @@
     if (url === 'about:blank') return;
     note('Carregou: ' + url.replace(location.origin, ''), url.includes(opened.replace('..', '')) ? 'ok' : '');
     win.addEventListener('error', (e) => note('Erro: ' + e.message + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : ''), 'bad'));
+    // a script, style or other file of the page that failed to load (blocked, missing)
+    win.addEventListener('error', (e) => {
+      const el = e.target;
+      if (el && el !== win && (el.src || el.href)) note('Não carregou: ' + String(el.src || el.href).split('/').pop(), 'bad');
+    }, true);
+    // a result the tool hands over as a download (the browser must save it)
+    win.document.addEventListener('click', (e) => {
+      const a = e.target && e.target.closest && e.target.closest('a[download]');
+      if (a) note('Download pedido: ' + (a.getAttribute('download') || 'arquivo') + ' (' + String(a.href).slice(0, 5) + ')');
+    }, true);
+    const nativeClick = win.HTMLAnchorElement && win.HTMLAnchorElement.prototype.click;
+    if (nativeClick) win.HTMLAnchorElement.prototype.click = function () {
+      if (this.hasAttribute('download')) note('Download pedido: ' + (this.getAttribute('download') || 'arquivo') + ' (' + String(this.href).slice(0, 5) + ')');
+      return nativeClick.apply(this, arguments);
+    };
     win.addEventListener('unhandledrejection', (e) => note('Erro (promessa): ' + (e.reason && (e.reason.message || e.reason)), 'bad'));
     win.addEventListener('beforeunload', () => note('A página vai sair: ' + String(win.location.href).replace(location.origin, '')));
     win.addEventListener('pagehide', () => note('A página foi fechada/trocada'));
@@ -84,6 +99,8 @@
       let text = '';
       try { text = doc.body.innerText; } catch (_) { return; }
       const m = text.match(/\d+ (pages|páginas|page|página)\b/);
+      const viewer = doc.querySelector('canvas, embed-pdf, [class*="viewer"] img');
+      if (!m && viewer && Date.now() - started > 3000) { note('A ferramenta mostra o arquivo (visualizador aberto)', 'ok'); return; }
       if (m) { note('A ferramenta mostra o arquivo: ' + m[0], 'ok'); return; }
       if (Date.now() - started > 20000) {
         note('Depois de 20 s a ferramenta ainda não mostra o arquivo. Texto visível: ' + text.replace(/\s+/g, ' ').slice(0, 400), 'bad');
