@@ -147,14 +147,18 @@ def main() -> int:
 
         # 5. XeOS profile: a WebKit app view that names itself desktop Safari and has no service worker
         context = browser.new_context(viewport={'width': 1180, 'height': 820}, has_touch=True, is_mobile=False,
-                                      service_workers='block', user_agent=XEOS_UA)
+                                      service_workers='block', user_agent=XEOS_UA,
+                                      locale='pt-BR')  # a Portuguese iPad: tool links once gained /pt/ and led to a 404
         page = context.new_page()
         watch(page, log, 'xeos')
         page.on('console', lambda m: log.append(f'[xeos] console.{m.type}: {m.text[:200]}') if m.type in ('warning', 'log') and 'VITE_' not in m.text else None)
         page.on('requestfailed', lambda r: log.append(f'[xeos] requestfailed: {r.url[:160]} {r.failure}'))
         page.on('response', lambda r: log.append(f'[xeos] HTTP {r.status}: {r.url[:160]}') if r.status >= 400 else None)
         page.on('worker', lambda w: log.append(f'[xeos] worker: {w.url[:160]}'))
-        page.goto(TOOLS + 'bentopdf/split-pdf.html', wait_until='load')
+        page.goto(TOOLS + 'bentopdf/', wait_until='load')
+        tap_split_card(page)
+        page.wait_for_timeout(6000)
+        log.append(f'[xeos] url after tapping Split PDF in Portuguese: {page.url}')
         report(log, 'xeos', page, pdf)
         page.screenshot(path=str(OUT / 'xeos.png'))
         context.close()
