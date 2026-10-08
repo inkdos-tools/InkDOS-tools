@@ -590,6 +590,8 @@ def write_index(out: Path, tools: list[dict]) -> None:
     shutil.copytree(ROOT / 'site-src' / 'viewers', out / 'viewers', dirs_exist_ok=True)
     # the InkDOS look for the tools' own pages (inkdos_skin)
     shutil.copytree(ROOT / 'site-src' / 'skins', out / 'skins', dirs_exist_ok=True)
+    # diagnostics page for browsers without developer tools (an iPad app): shows what a PDF toolkit page does
+    shutil.copytree(ROOT / 'site-src' / 'diag', out / 'diag', dirs_exist_ok=True)
     (out / '.nojekyll').write_text('', encoding='utf-8')
     # GitHub Pages serves one 404 page per site: send a deep link inside a tool (single-page apps with
     # history routing, e.g. IT-Tools) back to that tool's start page instead of a dead end
