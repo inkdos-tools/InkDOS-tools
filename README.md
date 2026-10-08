@@ -32,7 +32,8 @@ network request unless the user turns one on.
   from this site, following the project's own air-gap recipe. GitHub Pages cannot send the COOP/COEP
   headers that LibreOffice WASM (Office/ODF to PDF) needs, so a short prelude in BentoPDF's own service
   worker adds them to worker scripts and to the pages whose tool loads LibreOffice (found at build time);
-  such a page reloads once the first time to become cross-origin isolated. Every other tool page stays a
+  such a page reloads once the first time to become cross-origin isolated. The start page does not reload when its service worker takes
+  control (that reload cancelled a tool being opened). Every other tool page stays a
   plain page (on iOS Safari, isolated tool pages opened from the start page went straight back to it).
 - **Viewers for InkDOS workspaces**: `odf/` (WebODF's `OdfCanvas` with a small page in `site-src/odf/`)
   and `pnk/` accept a file handed over by an InkDOS workspace (`?embed=1`, same origin, protocol in
@@ -44,6 +45,8 @@ network request unless the user turns one on.
   each checked by sha256) are served from `python/` and load on import, offline. An InkDOS bar opens files
   from the device into Python and saves files back. `python/online.html` is the same terminal allowed to
   reach PyPI, so `micropip.install()` works there (the user is asked first); see `SECURITY.md`.
+  A service worker (`site-src/python/sw.js`) stores the terminal and every bundled package on the device the
+  first time the terminal opens, so it starts and imports with no network afterwards.
 - **Faithful views for InkDOS Documents and Presentations**: `docx/` (docx-preview) and `pptx/`
   (pptx-renderer's standalone browser build, without PDF.js) show a file with its own page or slide layout,
   read only, standalone or embedded by an InkDOS workspace with the same viewer protocol as `odf/` and `pnk/`.

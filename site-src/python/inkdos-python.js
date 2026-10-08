@@ -98,6 +98,12 @@
     doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'hidden') sync(); });
     addEventListener('pagehide', sync);
   }
-  function install() { doc.body.appendChild(bar); doc.documentElement.classList.add('inkdos-python'); ready(); }
+  // keep the terminal and its packages on this device (python/sw.js) and ask the browser not to clear them
+  function keepOffline() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (_) {}
+  }
+  function install() { doc.body.appendChild(bar); doc.documentElement.classList.add('inkdos-python'); ready(); keepOffline(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', install, { once: true }); else install();
 })();
