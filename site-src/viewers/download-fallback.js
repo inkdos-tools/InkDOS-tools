@@ -1,14 +1,12 @@
 // InkDOS-tools: tools hand their result over as a download (a link to a file made by the page, blob: or data:).
-// In-app browsers on iPad such as XeOS do not save those downloads, so the tool seemed to do nothing. There, the
-// result is offered in a small panel instead: "Save or share" (the iOS share sheet, which has "Save to Files") and
-// "Open". The panel is used where the browser has no service worker on an Apple touch device (an app's web view;
-// Safari has service workers and downloads), or when localStorage 'inkdos-tools:download-panel' is '1'.
+// For a browser that cannot save such downloads, the result can be offered in a small panel instead: "Save or
+// share" (the iOS share sheet, which has "Save to Files") and "Open". Off unless localStorage
+// 'inkdos-tools:download-panel' is '1': XeOS on iPad, for which it was written, does save these downloads.
 (function () {
   'use strict';
   var forced = false;
   try { forced = localStorage.getItem('inkdos-tools:download-panel') === '1'; } catch (_) {}
-  var appView = !('serviceWorker' in navigator) && navigator.maxTouchPoints > 0 && /Macintosh|iPad|iPhone/.test(navigator.userAgent);
-  if (!forced && !appView) return;
+  if (!forced) return;
 
   var pt = /^pt/i.test(navigator.language || '');
   var T = pt ? { ready: 'Arquivo pronto', share: 'Salvar ou compartilhar', open: 'Abrir', close: 'Fechar', failed: 'Não foi possível compartilhar; use Abrir.' }

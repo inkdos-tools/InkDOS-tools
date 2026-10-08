@@ -347,8 +347,8 @@ def needs_isolation(page: Path, dest: Path, base: str) -> bool:
 # such a page kept the previous page alive in the back-forward cache and the new one went straight back to the list
 # (or froze); an unload listener makes Safari drop the previous page instead of caching it.
 BFCACHE_OFF = "<script>/* InkDOS-tools: no back-forward cache (memory on iPad) */addEventListener('unload',function(){})</script>"
-# Tools hand their result over as a download; in-app browsers on iPad (XeOS) do not save those, so the result is
-# offered in a panel with the share sheet and Open there (site-src/viewers/download-fallback.js).
+# Tools hand their result over as a download; for a browser that cannot save those, the result can be offered in a
+# panel with the share sheet and Open (site-src/viewers/download-fallback.js, off unless turned on in storage).
 DOWNLOAD_PANEL = f'<script src="{BASE}viewers/download-fallback.js"></script>'
 
 
