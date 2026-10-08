@@ -50,16 +50,48 @@
     win.addEventListener('pagehide', () => note('A página foi fechada/trocada'));
     doc.addEventListener('change', (e) => {
       const input = e.target;
-      if (input && input.type === 'file') note('Arquivo escolhido: ' + [...(input.files || [])].map((f) => f.name + ' (' + f.size + ' bytes)').join(', '), 'ok');
+      if (input && input.type === 'file') { note('Arquivo escolhido: ' + [...(input.files || [])].map((f) => f.name + ' (' + f.size + ' bytes)').join(', '), 'ok'); follow(doc); }
     }, true);
+    // workers (the PDF reader runs in one): their errors do not reach the page, so they are reported here
+    const NativeWorker = win.Worker;
+    if (NativeWorker) win.Worker = function (url, options) {
+      const name = String(url).split('/').pop().split('?')[0];
+      let worker;
+      try { worker = new NativeWorker(url, options); } catch (err) { note('Worker não abriu (' + name + '): ' + (err && err.message || err), 'bad'); throw err; }
+      note('Worker aberto: ' + name);
+      worker.addEventListener('error', (ev) => note('Erro no worker ' + name + ': ' + (ev.message || 'sem mensagem'), 'bad'));
+      worker.addEventListener('messageerror', () => note('Mensagem inválida do worker ' + name, 'bad'));
+      return worker;
+    };
+    // requests that fail (a blocked or missing file)
+    const nativeFetch = win.fetch;
+    if (nativeFetch) win.fetch = function (input) {
+      const name = String(input && input.url || input).split('/').pop().split('?')[0].slice(0, 80);
+      return nativeFetch.apply(this, arguments).then((r) => { if (!r.ok) note('Falha ao baixar ' + name + ': HTTP ' + r.status, 'bad'); return r; },
+        (err) => { note('Falha ao baixar ' + name + ': ' + (err && err.message || err), 'bad'); throw err; });
+    };
     doc.addEventListener('click', (e) => {
       const a = e.target && e.target.closest && e.target.closest('a,button');
       if (a) note('Toque em: ' + (a.getAttribute('href') || a.id || a.textContent.trim().slice(0, 40)));
     }, true);
     const origError = win.console.error;
     win.console.error = function () { note('console.error: ' + [...arguments].map(String).join(' ').slice(0, 300), 'bad'); return origError.apply(this, arguments); };
-    // the page's text, a few seconds later, to see whether the tool shows the file
-    setTimeout(() => { try { const text = doc.body.innerText; const m = text.match(/\d+ (pages|páginas)/); if (m) note('A ferramenta mostra: ' + m[0], 'ok'); } catch (_) {} }, 4000);
+  }
+  // after a file is picked: what the tool shows over the next 20 seconds (page count, or the visible text if none)
+  function follow(doc) {
+    const started = Date.now();
+    const tick = () => {
+      let text = '';
+      try { text = doc.body.innerText; } catch (_) { return; }
+      const m = text.match(/\d+ (pages|páginas|page|página)\b/);
+      if (m) { note('A ferramenta mostra o arquivo: ' + m[0], 'ok'); return; }
+      if (Date.now() - started > 20000) {
+        note('Depois de 20 s a ferramenta ainda não mostra o arquivo. Texto visível: ' + text.replace(/\s+/g, ' ').slice(0, 400), 'bad');
+        return;
+      }
+      setTimeout(tick, 1000);
+    };
+    setTimeout(tick, 1000);
   }
   frame.addEventListener('load', instrument);
   document.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => {

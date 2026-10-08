@@ -15,6 +15,8 @@ TOOLS = 'https://inkdos-tools.github.io/InkDOS-tools/'
 INKDOS = 'https://vfydr2m9wk-ops.github.io/InkDOS/'
 OUT = Path('webkit-report')
 BLOCK_POPUPS = 'window.open = () => null;'
+XEOS_UA = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) '
+           'Version/18.2 Safari/605.1.15')  # as reported by XeOS on iPad
 
 
 def two_page_pdf(path: Path) -> None:
@@ -141,6 +143,20 @@ def main() -> int:
         watch(tab, log, 'home-tab:new')
         tab.wait_for_load_state('load')
         report(log, 'home-tab', tab, pdf)
+        context.close()
+
+        # 5. XeOS profile: a WebKit app view that names itself desktop Safari and has no service worker
+        context = browser.new_context(viewport={'width': 1180, 'height': 820}, has_touch=True, is_mobile=False,
+                                      service_workers='block', user_agent=XEOS_UA)
+        page = context.new_page()
+        watch(page, log, 'xeos')
+        page.on('console', lambda m: log.append(f'[xeos] console.{m.type}: {m.text[:200]}') if m.type in ('warning', 'log') and 'VITE_' not in m.text else None)
+        page.on('requestfailed', lambda r: log.append(f'[xeos] requestfailed: {r.url[:160]} {r.failure}'))
+        page.on('response', lambda r: log.append(f'[xeos] HTTP {r.status}: {r.url[:160]}') if r.status >= 400 else None)
+        page.on('worker', lambda w: log.append(f'[xeos] worker: {w.url[:160]}'))
+        page.goto(TOOLS + 'bentopdf/split-pdf.html', wait_until='load')
+        report(log, 'xeos', page, pdf)
+        page.screenshot(path=str(OUT / 'xeos.png'))
         context.close()
         browser.close()
     text = '\n'.join(log)
