@@ -112,17 +112,6 @@
       "license_file": "LICENSE"
     },
     {
-      "id": "epub",
-      "name": "foliate-js",
-      "title": "EPUB reader",
-      "group": "Reading",
-      "description": "Read EPUB, MOBI, KF8, FB2 and CBZ books on this device (foliate-js, the reader of the Foliate app).",
-      "repo": "https://github.com/johnfactotum/foliate-js",
-      "ref": "78914aef4466eb960965702401634c2cb348e9b1",
-      "license": "MIT",
-      "license_file": "LICENSE"
-    },
-    {
       "id": "txt",
       "name": "CodeMirror",
       "title": "Plain text editor",
