@@ -590,61 +590,6 @@ def build_pptx(src: Path, dest: Path, tool: dict) -> None:
     shutil.rmtree(dest / 'pkg')
     copy_files(ROOT / 'site-src' / 'pptx', dest, ['index.html', 'viewer.js', 'viewer.css'])
 
-
-def small_tool_offline(dest: Path, tool: dict, extra: list[str]) -> None:
-    """A tool without a worker of its own: site-src/viewers/offline-sw.js keeps every file of its folder (and the
-    shared files its pages load) on the device, and inkdos-offline.json lists them for Download all."""
-    scope = f"{BASE}{tool['id']}/"
-    rels = sorted(path.relative_to(dest).as_posix() for path in dest.rglob('*') if path.is_file()
-                  and path.suffix not in ('.map', '.md', '.txt') and not path.name.endswith('.d.ts'))
-    files = ['./', *rels, *extra]
-    digest = hashlib.sha256(json.dumps(files).encode())
-    for rel in rels:
-        digest.update((dest / rel).read_bytes())
-    stamp = digest.hexdigest()[:16]
-    sw = (ROOT / 'site-src' / 'viewers' / 'offline-sw.js').read_text(encoding='utf-8')
-    (dest / 'sw.js').write_text(sw.replace('__PREFIX__', f"inkdos-{tool['id']}-").replace('__VERSION__', stamp)
-                                .replace('__FILES__', json.dumps(files)), encoding='utf-8')
-    offline_list(dest, {'cache': f"inkdos-{tool['id']}-{stamp}", 'worker': scope + 'sw.js', 'scope': scope,
-                        'files': [{'url': scope if f == './' else scope + f, 'size': (dest / f).stat().st_size if (dest / f).is_file() else 0}
-                                  for f in files]})
-
-
-# the page registers its worker (offline) and takes a file handed over by the InkDOS Office Home
-SMALL_TOOL_SCRIPTS = ('<script src="../viewers/file-handoff.js" data-input="{input}"></script>'
-                      '<script src="../viewers/viewer-embed.js"></script>'
-                      "<script src=\"../viewers/register-sw.js\"></script>")
-
-
-CODEMIRROR_VERSION = '5.65.21'
-
-
-def build_txt(src: Path, dest: Path, tool: dict) -> None:
-    # CodeMirror 5 (the pinned tag's npm release: lib/ is built there) and the InkDOS page around it (site-src/txt/)
-    packs = src.parent / f"{tool['id']}-packs"
-    for tgz in npm_pack([f'codemirror@{CODEMIRROR_VERSION}'], packs):
-        untar(tgz, dest / 'pkg')
-    for part in ('lib', 'addon', 'mode', 'LICENSE'):
-        source = dest / 'pkg' / part
-        (shutil.copytree if source.is_dir() else shutil.copy2)(source, dest / 'cm' / part)
-    shutil.rmtree(dest / 'pkg')
-    copy_files(ROOT / 'site-src' / 'txt', dest, ['index.html', 'txt.js', 'txt.css'])
-    page = (dest / 'index.html').read_text(encoding='utf-8')
-    used = set(re.findall(r'(?:src|href)="\./(cm/[^"]+)"', page)) | {'cm/LICENSE'}
-    for rel in used:
-        if not (dest / rel).is_file():
-            sys.exit(f'txt: {rel} is not in CodeMirror {CODEMIRROR_VERSION}')
-    for path in sorted((dest / 'cm').rglob('*'), reverse=True):  # only what the page loads
-        if path.is_file() and path.relative_to(dest).as_posix() not in used:
-            path.unlink()
-        elif path.is_dir() and not any(path.iterdir()):
-            path.rmdir()
-    (dest / 'index.html').write_text(page.replace('</body>', SMALL_TOOL_SCRIPTS.format(input='#file-input') + '</body>', 1), encoding='utf-8')
-    inkdos_skin(dest / 'index.html', tool['id'])
-    small_tool_offline(dest, tool, ['../viewers/file-handoff.js', '../viewers/viewer-embed.js', '../viewers/register-sw.js', '../viewers/viewer-theme.js',
-                                    '../skins/inkdos.css', f"../skins/{tool['id']}.css"])
-
-
 BUILDERS = {
     'archivedrop': build_archivedrop,
     'cyberchef': build_cyberchef,
@@ -656,7 +601,6 @@ BUILDERS = {
     'squoosh': build_squoosh,
     'docx': build_docx,
     'pptx': build_pptx,
-    'txt': build_txt,
 }
 
 
