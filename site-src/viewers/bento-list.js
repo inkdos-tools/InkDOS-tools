@@ -8,6 +8,8 @@
   var css = document.createElement('style');
   css.textContent = [
     '#tools-header{display:none!important}',
+    // the search bar (and its shortcut keys) sits in the first block of #grid-view, above the list
+    '#grid-view>div:has(#search-bar){display:none!important}',
     '#tool-grid{display:block!important}',
     '#tool-grid .category-group{margin:0 0 10px;border:1px solid rgba(127,127,127,.25);border-radius:12px;overflow:hidden}',
     '#tool-grid .category-header{width:100%;padding:12px 14px}',
