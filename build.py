@@ -616,23 +616,6 @@ SMALL_TOOL_SCRIPTS = ('<script src="../viewers/file-handoff.js" data-input="{inp
                       "<script src=\"../viewers/register-sw.js\"></script>")
 
 
-def build_epub(src: Path, dest: Path, tool: dict) -> None:
-    # foliate-js (the reader library of the Foliate app) runs as is, ES modules with its vendored zip.js/fflate/PDF.js;
-    # its reader.html is the reader page (index.html here)
-    for item in src.iterdir():
-        if item.name.startswith('.') or item.name in ('tests', 'rollup', 'rollup.config.js', 'eslint.config.js', 'package.json',
-                                                      'package-lock.json', 'README.md'):
-            continue
-        (shutil.copytree if item.is_dir() else shutil.copy2)(item, dest / item.name)
-    page = (dest / 'reader.html').read_text(encoding='utf-8')
-    if 'id="file-input"' not in page:
-        sys.exit('epub: reader.html has no #file-input')
-    page += SMALL_TOOL_SCRIPTS.format(input='#file-input')  # the page leaves </body> implicit
-    (dest / 'index.html').write_text(page, encoding='utf-8')
-    (dest / 'reader.html').unlink()  # the reader keeps its own look (light/dark from the system)
-    small_tool_offline(dest, tool, ['../viewers/file-handoff.js', '../viewers/viewer-embed.js', '../viewers/register-sw.js'])
-
-
 CODEMIRROR_VERSION = '5.65.21'
 
 
@@ -673,7 +656,6 @@ BUILDERS = {
     'squoosh': build_squoosh,
     'docx': build_docx,
     'pptx': build_pptx,
-    'epub': build_epub,
     'txt': build_txt,
 }
 
