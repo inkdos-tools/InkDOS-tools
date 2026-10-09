@@ -335,6 +335,9 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
         if '<head>' in text and DOWNLOAD_PANEL not in text:
             text = text.replace('<head>', '<head>' + DOWNLOAD_PANEL, 1)
             page.write_text(text, encoding='utf-8')
+        if page.parent == dest and '<head>' in text and BENTO_CARRY not in text:  # the toolkit pages, not the viewers
+            text = text.replace('<head>', '<head>' + BENTO_CARRY, 1)
+            page.write_text(text, encoding='utf-8')
         if '<head>' in text and '</head>' in text:
             # page titles name the upstream brand directly (the branding options cover header and footer)
             title = re.sub(r'<title>(.*?)</title>', lambda m: m.group(0).replace('BentoPDF', 'InkDOS PDF'),
@@ -360,7 +363,7 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
              if rel not in ('sw.js', OFFLINE_LIST) and not rel.endswith('.map') and not precompressed_copy(dest / rel)]
     files += [{'url': BASE + rel, 'size': 0, 'group': 'pdf'} for rel in
               ('skins/inkdos.css', f"skins/{tool['id']}.css", 'viewers/viewer-theme.js', 'viewers/download-fallback.js',
-               'viewers/file-handoff.js', 'viewers/viewer-embed.js')]
+               'viewers/file-handoff.js', 'viewers/viewer-embed.js', 'viewers/bento-carry.js')]
     offline_list(dest, {'cache': cache.group(1) + '-static', 'worker': base + 'sw.js', 'scope': base, 'files': files})
 
 
@@ -395,6 +398,9 @@ BFCACHE_OFF = "<script>/* InkDOS-tools: no back-forward cache (memory on iPad) *
 # Tools hand their result over as a download; for a browser that cannot save those, the result can be offered in a
 # panel with the share sheet and Open (site-src/viewers/download-fallback.js, off unless turned on in storage).
 DOWNLOAD_PANEL = f'<script src="{BASE}viewers/download-fallback.js"></script>'
+# "Edit PDF" in the InkDOS PDF workspace: the open PDF follows into whichever toolkit page is chosen
+# (site-src/viewers/bento-carry.js; viewer-embed.js after it answers the InkDOS frame)
+BENTO_CARRY = f'<script src="{BASE}viewers/bento-carry.js"></script><script src="{BASE}viewers/viewer-embed.js"></script>'
 
 
 COI_PRELUDE = """// InkDOS-tools: add cross-origin isolation headers to the pages that load LibreOffice WASM and to worker scripts
