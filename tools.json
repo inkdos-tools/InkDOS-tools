@@ -110,17 +110,6 @@
       "ref": "0cf5c194b4db2cf9f2531b6a7e24a61338caabf1",
       "license": "Apache-2.0",
       "license_file": "LICENSE"
-    },
-    {
-      "id": "txt",
-      "name": "CodeMirror",
-      "title": "Plain text editor",
-      "group": "Reading",
-      "description": "Open, edit and save plain-text, Markdown, JSON, YAML and other text files on this device (CodeMirror 5).",
-      "repo": "https://github.com/codemirror/codemirror5",
-      "ref": "e1ce7619cf05f63e74fcd191553dd20e1ccc8e58",
-      "license": "MIT",
-      "license_file": "LICENSE"
     }
   ]
 }
