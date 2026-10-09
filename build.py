@@ -343,7 +343,8 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
             inkdos_skin(page, tool['id'])
     # the PDF.js viewer opens a file handed over by the InkDOS Office Home (its PDF card)
     viewer = dest / 'pdfjs-viewer' / 'viewer.html'
-    handoff = f'<script src="{BASE}viewers/file-handoff.js" data-mode="pdfjs"></script>'
+    handoff = (f'<script src="{BASE}viewers/file-handoff.js" data-mode="pdfjs"></script>'
+               f'<script src="{BASE}viewers/viewer-embed.js"></script>')
     text = viewer.read_text(encoding='utf-8')
     if '</body>' not in text:
         sys.exit('bentopdf: pdfjs-viewer/viewer.html has no </body>')
@@ -359,7 +360,7 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
              if rel not in ('sw.js', OFFLINE_LIST) and not rel.endswith('.map') and not precompressed_copy(dest / rel)]
     files += [{'url': BASE + rel, 'size': 0, 'group': 'pdf'} for rel in
               ('skins/inkdos.css', f"skins/{tool['id']}.css", 'viewers/viewer-theme.js', 'viewers/download-fallback.js',
-               'viewers/file-handoff.js')]
+               'viewers/file-handoff.js', 'viewers/viewer-embed.js')]
     offline_list(dest, {'cache': cache.group(1) + '-static', 'worker': base + 'sw.js', 'scope': base, 'files': files})
 
 
@@ -611,6 +612,7 @@ def small_tool_offline(dest: Path, tool: dict, extra: list[str]) -> None:
 
 # the page registers its worker (offline) and takes a file handed over by the InkDOS Office Home
 SMALL_TOOL_SCRIPTS = ('<script src="../viewers/file-handoff.js" data-input="{input}"></script>'
+                      '<script src="../viewers/viewer-embed.js"></script>'
                       "<script src=\"../viewers/register-sw.js\"></script>")
 
 
@@ -628,7 +630,7 @@ def build_epub(src: Path, dest: Path, tool: dict) -> None:
     page += SMALL_TOOL_SCRIPTS.format(input='#file-input')  # the page leaves </body> implicit
     (dest / 'index.html').write_text(page, encoding='utf-8')
     (dest / 'reader.html').unlink()  # the reader keeps its own look (light/dark from the system)
-    small_tool_offline(dest, tool, ['../viewers/file-handoff.js', '../viewers/register-sw.js'])
+    small_tool_offline(dest, tool, ['../viewers/file-handoff.js', '../viewers/viewer-embed.js', '../viewers/register-sw.js'])
 
 
 CODEMIRROR_VERSION = '5.65.21'
@@ -656,7 +658,7 @@ def build_txt(src: Path, dest: Path, tool: dict) -> None:
             path.rmdir()
     (dest / 'index.html').write_text(page.replace('</body>', SMALL_TOOL_SCRIPTS.format(input='#file-input') + '</body>', 1), encoding='utf-8')
     inkdos_skin(dest / 'index.html', tool['id'])
-    small_tool_offline(dest, tool, ['../viewers/file-handoff.js', '../viewers/register-sw.js', '../viewers/viewer-theme.js',
+    small_tool_offline(dest, tool, ['../viewers/file-handoff.js', '../viewers/viewer-embed.js', '../viewers/register-sw.js', '../viewers/viewer-theme.js',
                                     '../skins/inkdos.css', f"../skins/{tool['id']}.css"])
 
 
