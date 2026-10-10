@@ -4,7 +4,10 @@
 // frame the page is left as it is.
 (function () {
   'use strict';
-  if (!/[?&]embed=1/.test(location.search) || !/\/bentopdf\/(index\.html)?$/.test(location.pathname)) return;
+  // also when InkDOS opened the toolkit as a page of its own (XeOS; bento-carry.js keeps 'inkdos-return')
+  var fromInkdos = false;
+  try { fromInkdos = /^https:\/\/vfydr2m9wk-ops\.github\.io\//.test(sessionStorage.getItem('inkdos-return') || '') || /[?&]inkdos-return=/.test(location.search); } catch (_) {}
+  if ((!/[?&]embed=1/.test(location.search) && !fromInkdos) || !/\/bentopdf\/(index\.html)?$/.test(location.pathname)) return;
   var css = document.createElement('style');
   css.textContent = [
     '#tools-header{display:none!important}',

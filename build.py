@@ -619,7 +619,10 @@ BUILDERS = {
 # (each one used under this policy without violations): ArchiveDrop, BentoPDF, CyberChef, IT-Tools,
 # Pyodide, WebODF, pnk, Squoosh, docx-preview and pptx-renderer.
 CSP_BASE = ("default-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self' data:",
-            "connect-src 'self' data: blob:", "worker-src 'self' blob:", "frame-src 'self' blob:", "media-src 'self' data: blob:",
+            # frame-src also allows the InkDOS origin: a PDF InkDOS hands over as a separate page comes through a hidden
+            # InkDOS page (viewers/bento-carry.js)
+            "connect-src 'self' data: blob:", "worker-src 'self' blob:", "frame-src 'self' blob: https://vfydr2m9wk-ops.github.io",
+            "media-src 'self' data: blob:",
             "object-src 'none'", "base-uri 'self'", "form-action 'none'")
 INLINE_SCRIPT = re.compile(r'<script(?![^>]*\bsrc\s*=)[^>]*>(.*?)</script>', re.S | re.I)
 CSP_META = re.compile(r'<meta http-equiv="Content-Security-Policy" content="[^"]*" data-inkdos-tools>')

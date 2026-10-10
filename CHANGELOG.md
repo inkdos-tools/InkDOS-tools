@@ -2,6 +2,13 @@
 
 Changes to InkDOS-tools, newest first.
 
+## 2026-10-10 · BentoPDF as a separate page (InkDOS in XeOS)
+
+- Inside the XeOS web desktop a framed toolkit does not scroll, so InkDOS opens BentoPDF as a page of its own
+  (?inkdos-handoff=<id>&inkdos-return=<InkDOS page>). bento-carry.js fetches the PDF through a hidden InkDOS page
+  (handoff.html) and carries it like an embedded hand-over; a "← InkDOS" button leads back on every toolkit page
+  of that visit, and bento-list.js keeps the InkDOS list layout. CSP frame-src allows the InkDOS origin.
+
 ## 2026-10-09 · BentoPDF list inside InkDOS
 
 - "Edit with BentoPDF" in the InkDOS PDF workspace frames the toolkit (`?embed=1`). There the start page shows no
