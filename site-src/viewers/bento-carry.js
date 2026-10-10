@@ -98,8 +98,7 @@
     stuck: 'Est\u00e1 demorando muito. Se nada mudar, recarregue a p\u00e1gina e tente de novo.',
     failed: 'A opera\u00e7\u00e3o falhou. O arquivo original n\u00e3o foi alterado.', failTitle: 'Falhou',
     busy: 'A tela pode parar por alguns segundos enquanto o motor trabalha.',
-    killed: 'A opera\u00e7\u00e3o anterior foi interrompida: o navegador encerrou a p\u00e1gina, provavelmente por falta de mem\u00f3ria. O arquivo original n\u00e3o foi alterado. Tente com um arquivo menor.',
-    photon: ' O m\u00e9todo Photon, mais leve, j\u00e1 foi escolhido para a pr\u00f3xima tentativa.',
+    killed: 'A opera\u00e7\u00e3o anterior foi interrompida: o navegador encerrou a p\u00e1gina, provavelmente por falta de mem\u00f3ria. O arquivo original n\u00e3o foi alterado. Arquivos muito grandes (milhares de p\u00e1ginas) n\u00e3o cabem na mem\u00f3ria do celular: use um computador, ou divida o PDF em partes com a ferramenta Dividir e processe cada parte.',
     words: [[/engine|wasm|librar|download|initializ/i, 'Preparando o motor (mais lento s\u00f3 na primeira vez)'], [/compress|condens|optimi/i, 'Comprimindo'],
       [/convert/i, 'Convertendo'], [/merg|combin/i, 'Juntando'], [/split|extract/i, 'Separando'], [/render|image|page/i, 'Processando p\u00e1ginas'],
       [/encrypt|protect/i, 'Protegendo com senha'], [/decrypt|unlock|remov/i, 'Removendo a senha'], [/sav|generat|creat|writ|zip/i, 'Gerando o arquivo'],
@@ -109,8 +108,7 @@
     stuck: 'This is taking very long. If nothing changes, reload the page and try again.',
     failed: 'The operation failed. The original file was not changed.', failTitle: 'Failed',
     busy: 'The screen may pause for a few seconds while the engine works.',
-    killed: 'The previous operation was interrupted: the browser closed the page, most likely out of memory. The original file was not changed. Try a smaller file.',
-    photon: ' The lighter Photon method is now selected for the next try.', words: null
+    killed: 'The previous operation was interrupted: the browser closed the page, most likely out of memory. The original file was not changed. Very large files (thousands of pages) do not fit in a phone\'s memory: use a computer, or split the PDF into parts with the Split tool and process each part.', words: null
   };
   var BAD = /error|fail|invalid|could ?n.t|unable|corrupt|erro|falh/i;
   var box, bar, pctText, info, active = false, start = 0, pct = 0, lastText = '', step = 0, changedAt = 0, crashed = null;
@@ -167,11 +165,7 @@
   try { interrupted = sessionStorage.getItem(JOB); sessionStorage.removeItem(JOB); } catch (_) {}
   if (interrupted) {
     var tell = function () {
-      var algo = document.getElementById('compression-algorithm'), extra = '';
-      if (algo && algo.value === 'condense' && algo.querySelector('option[value="photon"]')) {
-        algo.value = 'photon'; algo.dispatchEvent(new Event('change', { bubbles: true })); extra = T.photon;
-      }
-      failAlert({ message: '' }, T.killed + extra);
+      failAlert({ message: '' }, T.killed);
     };
     if (document.readyState === 'complete') setTimeout(tell, 800); else addEventListener('load', function () { setTimeout(tell, 800); }, { once: true });
   }
