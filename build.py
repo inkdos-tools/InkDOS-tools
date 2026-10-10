@@ -355,6 +355,13 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
         ("    newRelativePath = `/${lang}${pagePathWithoutLang}`;",
          "    newRelativePath = pagePathWithoutLang; // InkDOS-tools: no /<lang>/ pages; the language is stored"),
     ])
+    # thumbnails: Organize and Delete pages drew every page at full size and every tool kept PNG data URLs, about
+    # +750 MB in WebKit for a 300-page PDF (iPhone pages ran out of memory); thumbnails are now about 200 px wide JPEG
+    thumb = "page.getViewport({ scale: Math.min(1, 200 / page.getViewport({ scale: 1 }).width) })"
+    for name in ('organize-pdf-page.ts', 'delete-pages-page.ts'):
+        patch(src / 'src/js/logic' / name, [("    const viewport = page.getViewport({ scale: 1 });\n", f"    const viewport = {thumb};\n")])
+    for name in ('organize-pdf-page.ts', 'delete-pages-page.ts', 'duplicate-organize.ts', 'split-pdf-page.ts', 'merge-pdf-page.ts'):
+        patch(src / 'src/js/logic' / name, [("img.src = canvas.toDataURL();", "img.src = canvas.toDataURL('image/jpeg', 0.8); canvas.width = canvas.height = 0;")])
     run(['npm', 'ci', '--no-audit', '--no-fund'], src, env={'HUSKY': '0'})
     run(['npx', 'vite', 'build'], src, env=env)
     shutil.copytree(src / 'dist', dest, dirs_exist_ok=True)
