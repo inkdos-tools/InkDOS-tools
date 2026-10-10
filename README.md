@@ -35,6 +35,12 @@ network request unless the user turns one on.
   such a page reloads once the first time to become cross-origin isolated. The start page does not reload when its service worker takes
   control (that reload cancelled a tool being opened). Every other tool page stays a
   plain page (on iOS Safari, isolated tool pages opened from the start page went straight back to it).
+  Opened from InkDOS, a tool page gets the PDF (`site-src/viewers/bento-carry.js`) and shows a plain scrollbar.
+  While a tool works, the loader shows a percentage, the current step and the elapsed time, and a failure says so.
+  On WebKit (iPhone, iPad, Safari, XeOS), where iOS closes a page that uses too much memory, the tools draw smaller
+  JPEG thumbnails, compress long documents more lightly, and a PDF likely
+  to need more than about 800 MB asks first (Try anyway / Cancel); Chromium keeps the tools as they are. Everywhere,
+  PyMuPDF loads its heavy add-ons (OpenCV, numpy, Word converters) only when a tool needs them.
 - **Viewers for InkDOS workspaces**: `odf/` (WebODF's `OdfCanvas` with a small page in `site-src/odf/`)
   and `pnk/` accept a file handed over by an InkDOS workspace (`?embed=1`, same origin, protocol in
   `site-src/viewers/viewer-embed.js`) and follow the InkDOS light/dark appearance. WebODF is built
