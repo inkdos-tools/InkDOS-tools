@@ -2,6 +2,11 @@
 
 Changes to InkDOS-tools, newest first.
 
+## 2026-10-10 · BentoPDF start page back to the original
+
+- The one-line grouped tool list (viewers/bento-list.js) is no longer added: BentoPDF shows its original start page
+  again, with the search bar and its own tool layout (owner). InkDOS opens it as a page of its own.
+
 ## 2026-10-10 · Up / Down side bar
 
 - Toolkit pages opened from InkDOS (framed or as their own page) get a side bar with Up and Down buttons, so the
