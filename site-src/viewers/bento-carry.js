@@ -85,3 +85,33 @@
     if (item && item.data) give(new File([item.data], item.name || 'document.pdf', { type: item.type || 'application/pdf' }));
   }).catch(function () {});
 })();
+
+// InkDOS: a side bar with Up / Down buttons on the toolkit pages InkDOS opens (framed or as a page of its own), so
+// the page can be moved with a tap where swiping does not scroll it (the XeOS web desktop on iPad).
+(function () {
+  'use strict';
+  var fromInkdos = /[?&](embed=1|inkdos-return=)/.test(location.search);
+  try { fromInkdos = fromInkdos || /^https:\/\/vfydr2m9wk-ops\.github\.io\//.test(sessionStorage.getItem('inkdos-return') || ''); } catch (_) {}
+  if (!fromInkdos) return;
+  function add() {
+    if (document.getElementById('inkdosScrollBar')) return;
+    var bar = document.createElement('div');
+    bar.id = 'inkdosScrollBar';
+    bar.style.cssText = 'position:fixed;right:6px;top:50%;transform:translateY(-50%);z-index:2147483646;display:flex;' +
+      'flex-direction:column;gap:8px';
+    [['▲', -1, 'Subir', 'Up'], ['▼', 1, 'Descer', 'Down']].forEach(function (k) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = k[0];
+      b.setAttribute('aria-label', /^pt/i.test(navigator.language || '') ? k[2] : k[3]);
+      b.style.cssText = 'width:44px;height:44px;border:0;border-radius:12px;background:rgba(25,34,53,.78);color:#fff;' +
+        'font-size:16px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);touch-action:manipulation';
+      b.addEventListener('click', function () {
+        var el = document.scrollingElement || document.documentElement;
+        el.scrollBy({ top: k[1] * Math.round(innerHeight * 0.7), behavior: 'smooth' });
+      });
+      bar.appendChild(b);
+    });
+    document.body.appendChild(bar);
+  }
+  if (document.body) add(); else document.addEventListener('DOMContentLoaded', add, { once: true });
+})();
