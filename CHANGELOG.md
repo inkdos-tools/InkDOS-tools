@@ -2,6 +2,11 @@
 
 Changes to InkDOS-tools, newest first.
 
+## 2026-10-10 · Up / Down side bar
+
+- Toolkit pages opened from InkDOS (framed or as their own page) get a side bar with Up and Down buttons, so the
+  page moves with a tap where swiping does not scroll it (XeOS on iPad). Owner request.
+
 ## 2026-10-10 · BentoPDF as a separate page (InkDOS in XeOS)
 
 - Inside the XeOS web desktop a framed toolkit does not scroll, so InkDOS opens BentoPDF as a page of its own
