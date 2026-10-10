@@ -184,7 +184,9 @@
   new MutationObserver(function () {
     var modal = document.getElementById('alert-modal'), msg = document.getElementById('alert-message'), title = document.getElementById('alert-title');
     if (!visible(modal) || !msg || msg.dataset.inkdosNote === msg.textContent) return;
-    if (BAD.test((title ? title.textContent : '') + ' ' + msg.textContent) && msg.textContent.indexOf(T.failed) < 0) {
+    var head = title ? title.textContent.trim() : '';
+    // the title decides: "Compression Finished: could not reduce the size further" is not a failure
+    if ((BAD.test(head) || (/^(alert|aviso|)$/i.test(head) && BAD.test(msg.textContent))) && msg.textContent.indexOf(T.failed) < 0) {
       msg.style.whiteSpace = 'pre-line'; msg.textContent = T.failed + '\n' + msg.textContent;
     }
     msg.dataset.inkdosNote = msg.textContent;
