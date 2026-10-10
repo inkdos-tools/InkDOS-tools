@@ -200,3 +200,61 @@
   }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true, characterData: true });
   setInterval(tick, 300);
 })();
+
+// InkDOS, WebKit only (window.__inkdosLowMem): iOS closes a page that uses too much memory, and Safari does not let a
+// page read its own memory use, so a chosen PDF is weighed first (pages and size, measured per tool in WebKit,
+// 2026-10-10). Above about 800 MB estimated, the tool asks before it starts: "Try anyway" or "Cancel" (owner).
+(function () {
+  'use strict';
+  if (!window.__inkdosLowMem) return;
+  var BUDGET = 800, pt = /^pt/i.test(navigator.language || document.documentElement.lang || '');
+  var T = pt ? { title: 'Arquivo grande para este aparelho', go: 'Tentar mesmo assim', cancel: 'Cancelar',
+    body: function (n, mb) { return 'Este PDF tem ' + (n ? n + ' p\u00e1ginas e ' : '') + mb + ' MB. Esta ferramenta pode usar mais mem\u00f3ria do que o iPhone/iPad permite, e o navegador pode fechar a p\u00e1gina. Para evitar, divida o PDF com a ferramenta Dividir (que \u00e9 leve) ou use um computador.'; } }
+    : { title: 'Large file for this device', go: 'Try anyway', cancel: 'Cancel',
+    body: function (n, mb) { return 'This PDF has ' + (n ? n + ' pages and ' : '') + mb + ' MB. This tool may use more memory than the iPhone/iPad allows, and the browser may close the page. To avoid it, split the PDF with the Split tool (which is light) or use a computer.'; } };
+  var tool = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+  // MB of memory per page, from the WebKit sweep (300-page PDF); viewers and page grids weigh most
+  var HEAVY = /^(edit-pdf|form-filler|organize-pdf|delete-pages|rotate-pdf|rotate-custom|crop-pdf|sign-pdf|edit-pdf-text|add-watermark|duplicate-organize|pdf-multi-tool)$/;
+  var perPage = HEAVY.test(tool) ? 1.2 : /^compress-pdf$/.test(tool) ? 0.35 : 0.4;
+  function pages(buffer) {
+    var text = new TextDecoder('latin1').decode(new Uint8Array(buffer)), m = text.match(/\/Type\s*\/Page(?![s\w])/g);
+    var counts = text.match(/\/Count\s+(\d+)/g), most = 0;
+    (counts || []).forEach(function (c) { most = Math.max(most, +c.replace(/\D/g, '')); });
+    return Math.max(m ? m.length : 0, most);
+  }
+  function ask(n, mb) {
+    return new Promise(function (resolve) {
+      var box = document.createElement('div');
+      box.setAttribute('role', 'alertdialog');
+      box.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px';
+      box.innerHTML = '<div style="max-width:440px;background:#1f2937;color:#f9fafb;border-radius:14px;padding:20px;font:15px/1.45 -apple-system,BlinkMacSystemFont,sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.4)">' +
+        '<div data-t="title" style="font-weight:700;font-size:17px;margin-bottom:8px"></div><div data-t="body" style="margin-bottom:16px"></div>' +
+        '<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button type="button" data-a="cancel" style="height:40px;padding:0 16px;border-radius:10px;border:0;background:#374151;color:#fff;font:600 15px inherit"></button>' +
+        '<button type="button" data-a="go" style="height:40px;padding:0 16px;border-radius:10px;border:0;background:#e0533f;color:#fff;font:600 15px inherit"></button></div></div>';
+      box.querySelector('[data-t=title]').textContent = T.title;
+      box.querySelector('[data-t=body]').textContent = T.body(n, mb);
+      box.querySelector('[data-a=cancel]').textContent = T.cancel;
+      box.querySelector('[data-a=go]').textContent = T.go;
+      box.addEventListener('click', function (e) { var a = e.target.getAttribute && e.target.getAttribute('data-a'); if (a) { box.remove(); resolve(a === 'go'); } });
+      document.body.appendChild(box);
+    });
+  }
+  var passing = false;
+  window.addEventListener('change', function (event) {
+    var input = event.target;
+    if (passing || !input || input.type !== 'file' || !input.files || !input.files.length) return;
+    var list = Array.prototype.slice.call(input.files).filter(function (f) { return /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name); });
+    if (!list.length) return;
+    event.stopImmediatePropagation();
+    var size = list.reduce(function (s, f) { return s + f.size; }, 0);
+    Promise.all(list.map(function (f) { return f.arrayBuffer().then(pages).catch(function () { return 0; }); })).then(function (counts) {
+      var n = counts.reduce(function (s, c) { return s + c; }, 0), mb = size / 1048576;
+      var estimate = 150 + n * perPage + mb * 8;
+      return estimate > BUDGET ? ask(n, Math.round(mb)) : true;
+    }).then(function (go) {
+      if (!go) { try { input.value = ''; } catch (_) {} return; }
+      passing = true;
+      try { input.dispatchEvent(new Event('change', { bubbles: true })); } finally { passing = false; }
+    });
+  }, true);
+})();
