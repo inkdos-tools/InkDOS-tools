@@ -1,0 +1,4 @@
+Pyodide
+https://github.com/pyodide/pyodide
+commit b1e4fcc2488962f6360a97f19b9982d6fdb5d16f
+license MPL-2.0

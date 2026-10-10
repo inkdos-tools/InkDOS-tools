@@ -1,0 +1,4 @@
+docx-preview
+https://github.com/VolodymyrBaydalka/docxjs
+commit c533f383069008d4a1e05c6171ef8777fd078385
+license Apache-2.0

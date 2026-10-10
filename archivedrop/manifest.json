@@ -1,0 +1,15 @@
+{
+  "name": "ArchiveDrop",
+  "short_name": "ArchiveDrop",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f1115",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "1f4e6.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    }
+  ]
+}

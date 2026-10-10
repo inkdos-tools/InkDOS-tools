@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="it">
+<head><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' blob: https://vfydr2m9wk-ops.github.io; media-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'none'" data-inkdos-tools><script src="/InkDOS-tools/viewers/viewer-theme.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Extract ZIP, RAR and 7z</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="stylesheet" href="css/all.min.css"/>
+<link rel="stylesheet" href="/InkDOS-tools/skins/inkdos.css"><link rel="stylesheet" href="/InkDOS-tools/skins/archivedrop.css"></head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <h1 id="title">ArchiveDrop</h1>
+      <p id="subtitle">Estrai e condividi file in modo privato, direttamente dal browser.</p>
+    </header>
+
+    <section id="upload-section" class="card">
+      <div id="dropzone" class="dropzone">
+        <input id="file-input" type="file" accept=".zip,.rar,.7z" />
+        <div class="dropzone-content">
+          <i class="fa-solid fa-file-zipper"></i>
+          <p id="drop-text">Clicca per caricare o trascina qui il file</p>
+          <span id="drop-subtext">Supporta ZIP / RAR / 7Z (anche con password)</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="progress-section" class="card hidden">
+      <form id="password-form">
+        <input type="text" name="username" autocomplete="username" style="display:none" />
+        <div class="row">
+          <label id="password-label" for="password-input">Password (se richiesta)</label>
+          <input id="password-input" type="password" placeholder="Inserisci password" autocomplete="new-password" />
+        </div>
+        <button id="start-btn" type="submit" class="btn primary">Avvia estrazione</button>
+      </form>
+
+      <div class="progress">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+      <p id="progress-text">In attesa...</p>
+    </section>
+
+    <section id="table-section" class="card hidden">
+      <div class="table-header">
+        <h2 id="files-title">File estratti</h2>
+        <span id="files-count">0</span>
+      </div>
+
+      <div class="search-row">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="search-input" type="text" placeholder="Cerca file..." />
+      </div>
+
+      <div class="tree-view" id="tree-view"></div>
+      <div class="file-table" id="file-table"></div>
+
+      <div class="actions">
+        <button id="download-all" class="btn primary">Scarica tutti</button>
+        <button id="share-all" class="btn warn">Condividi tutti</button>
+      </div>
+
+      <button id="reset-btn" class="btn secondary full">Apri un altro archivio</button>
+    </section>
+  </main>
+
+  <!-- Modal preview immagini -->
+  <div id="image-modal" class="modal hidden">
+    <div class="modal-content">
+      <button id="modal-close" class="modal-close">×</button>
+      <img id="modal-image" alt="preview" />
+      <div id="modal-caption"></div>
+    </div>
+  </div>
+
+  <!--<script src="https://cdn.jsdelivr.net/npm/libarchive.js@2.0.2/dist/libarchive.js"></script>-->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

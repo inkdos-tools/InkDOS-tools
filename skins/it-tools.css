@@ -1,0 +1,10 @@
+/* InkDOS look for IT-Tools (with the colour patches in build.py): no green hero or sponsor button, the
+   sidebar header shows the tool name in InkDOS text colours. */
+.hero-wrapper .gradient{display:none!important}
+.hero-wrapper{height:136px;background:var(--ink-card);border-bottom:1px solid var(--ink-border)}
+.hero-wrapper .text-wrapper{color:var(--ink-text)!important;top:18px!important}
+.hero-wrapper .text-wrapper .title{font-weight:760!important;letter-spacing:-.02em}
+.hero-wrapper .text-wrapper .subtitle{color:var(--ink-muted)}
+.hero-wrapper .text-wrapper .divider{background-color:var(--ink-border)!important}
+.support-button{display:none!important}
+body{font-family:var(--ink-font)}

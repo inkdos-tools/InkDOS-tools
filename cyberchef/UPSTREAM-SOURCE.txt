@@ -1,0 +1,4 @@
+CyberChef
+https://github.com/gchq/CyberChef
+commit 58c1c599daa3c4ce3c6bff3aea4a47afb4e46040
+license Apache-2.0
