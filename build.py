@@ -367,6 +367,10 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
                f"if ({low}) {{ img.src = canvas.toDataURL('image/jpeg', 0.8); canvas.width = canvas.height = 0; }} else img.src = canvas.toDataURL();")])
     # the shared page renderer (Rotate, Rotate custom, Split, Merge and other page tools) draws smaller pages there
     patch(src / 'src/js/utils/render-utils.ts', [("      scale: useLazyLoading ? 0.5 : 1,\n", f"      scale: {low} ? 0.3 : useLazyLoading ? 0.5 : 1,\n")])
+    # previews (Crop, Posterize) drawn at 2.5x / 1.5x are drawn at 1x there; the final output keeps its scale
+    for name, scale in (('crop-pdf-page.ts', '2.5'), ('cropper.ts', '2.5'), ('posterize-page.ts', '1.5')):
+        patch(src / 'src/js/logic' / name, [(f"\n    const viewport = page.getViewport({{ scale: {scale} }});",
+               f"\n    const viewport = page.getViewport({{ scale: {low} ? 1 : {scale} }});")])
     run(['npm', 'ci', '--no-audit', '--no-fund'], src, env={'HUSKY': '0'})
     run(['npx', 'vite', 'build'], src, env=env)
     shutil.copytree(src / 'dist', dest, dirs_exist_ok=True)
