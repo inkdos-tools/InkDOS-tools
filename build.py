@@ -220,6 +220,78 @@ def npm_pack(specs: list[str], into: Path) -> list[Path]:
     return [into / name for name in out.split()]
 
 
+# PyMuPDF engine (BentoPDF Condense compression and others): a 2200-page PDF ran an iPhone page out of memory (gray
+# screen) at about 2.4 GB. The engine now starts with PyMuPDF and fontTools only (numpy, OpenCV, lxml and the Word
+# converters load the first time a tool needs them); compression repairs the file only when MuPDF had to, looks for
+# images only when there are any, and on long documents (over 300 pages) skips the full content clean, the thumbnail
+# scrub and font subsetting unless the fonts are a large part of the file; the result comes back through the file
+# system instead of base64. Measured in Chromium on a 15 MB, 2200-page text PDF: about 0.8 GB, twice as fast.
+PYMUPDF_EDITS = [
+    ("var PyMuPDF = class {", "var LIGHT_WHEEL = /^(pymupdf-|fonttools-|typing_extensions-)/;\nvar PyMuPDF = class {"),
+    ("""  async load() {
+    await this.getPyodide();
+  }
+  async getPyodide() {
+    if (this.pyodide) return this.pyodide;""", """  async load() {
+    await this.getPyodideBase();
+  }
+  async getPyodide() {
+    const pyodide = await this.getPyodideBase();
+    if (!this.fullPromise) this.fullPromise = (async () => {
+      await Promise.all(ASSETS.wheels.filter((wheel) => !LIGHT_WHEEL.test(wheel)).map((wheel) => pyodide.loadPackage(this.getAssetPath(wheel))));
+      pyodide.runPython("import cv2\\nimport numpy as np");
+    })();
+    await this.fullPromise;
+    return pyodide;
+  }
+  async getPyodideBase() {
+    if (this.pyodide) return this.pyodide;"""),
+    ("      ASSETS.wheels.map((wheel) => pyodide.loadPackage(this.getAssetPath(wheel)))\n",
+     "      ASSETS.wheels.filter((wheel) => LIGHT_WHEEL.test(wheel)).map((wheel) => pyodide.loadPackage(this.getAssetPath(wheel)))\n"),
+    ("import pymupdf\nimport cv2\nimport numpy as np\npymupdf.TOOLS.store_shrink(100)", "import pymupdf\npymupdf.TOOLS.store_shrink(100)"),
+    ("  async compressPdf(pdf, options) {\n    const pyodide = await this.getPyodide();",
+     "  async compressPdf(pdf, options) {\n    const pyodide = await this.getPyodideBase();"),
+    ("# Pre-repair: Fix corrupted xrefs before processing\ndoc = repair_pdf(doc)",
+     "# Pre-repair only when MuPDF had to repair the file on open\nif doc.is_repaired:\n    doc = repair_pdf(doc)\n"
+     "_big = doc.page_count > 300\n"
+     "def _font_bytes():\n"
+     "    _total = 0\n"
+     "    for _x in range(1, doc.xref_length()):\n"
+     "        for _k in ('FontFile', 'FontFile2', 'FontFile3'):\n"
+     "            _t, _v = doc.xref_get_key(_x, _k)\n"
+     "            if _t == 'xref':\n"
+     "                _l = doc.xref_get_key(int(_v.split()[0]), 'Length')\n"
+     "                if _l[0] == 'int':\n"
+     "                    _total += int(_l[1])\n"
+     "    return _total"),
+    ('    thumbnails=${scrubThumbnails ? "True" : "False"},', '    thumbnails=${scrubThumbnails ? "True" : "False"} and not _big,'),
+    ('if ${compressImages ? "True" : "False"}:',
+     'if ${compressImages ? "True" : "False"} and any(doc.xref_get_key(_x, "Subtype")[1] == "/Image" for _x in range(1, doc.xref_length())):'),
+    ('if ${subsetFonts ? "True" : "False"}:\n    doc.subset_fonts()',
+     'if ${subsetFonts ? "True" : "False"} and (not _big or _font_bytes() * 3 > ${originalSize}):\n    doc.subset_fonts()'),
+    ("pdf_bytes = doc.tobytes(\n    garbage=${garbage},", "pdf_bytes = doc.tobytes(\n    garbage=min(${garbage}, 3) if _big else ${garbage},"),
+    ('    clean=${clean ? "True" : "False"}\n)', '    clean=${clean ? "True" : "False"} and not _big\n)'),
+    ("""json.dumps({
+    'data': base64.b64encode(pdf_bytes).decode('ascii'),""", """with open("/compress_output_${docId}", "wb") as _f:
+    _f.write(pdf_bytes)
+pdf_bytes = None
+json.dumps({"""),
+    ("""    const parsed = JSON.parse(result);
+    const binary = atob(parsed.data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const compressedSize = parsed.compressedSize;""", """    const parsed = JSON.parse(result);
+    const bytes = pyodide.FS.readFile(`/compress_output_${docId}`);
+    try {
+      pyodide.FS.unlink(`/compress_output_${docId}`);
+    } catch {
+    }
+    const compressedSize = parsed.compressedSize;"""),
+]
+
+
 def untar(tgz: Path, dest: Path, inner: str = '') -> None:
     """Extract package/<inner> of an npm tarball into dest."""
     with tarfile.open(tgz) as tar:
@@ -294,6 +366,7 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
         *[f'@tesseract.js-data/{lang}' for lang in languages]], packs)))
     out = dest / 'wasm'
     untar(tgz['pymupdf'], out / 'pymupdf')
+    patch(out / 'pymupdf' / 'dist' / 'index.js', PYMUPDF_EDITS)
     untar(tgz['gs'], out / 'gs', 'assets')
     untar(tgz['cpdf'], out / 'cpdf', 'dist')
     untar(tgz['tess'], out / 'ocr', 'dist')
@@ -313,6 +386,9 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
     if not coi_pages:
         sys.exit('bentopdf: no page loads LibreOffice; the isolation list would be empty')
     sw = dest / 'sw.js'
+    # a new cache name, so devices that kept the previous PyMuPDF engine (cache-first, same file names) take this one
+    sw.write_text(re.sub(r"const CACHE_VERSION = '([^']+?)(?:-inkdos\d+)?';", r"const CACHE_VERSION = '\1-inkdos2';",
+                         sw.read_text(encoding='utf-8'), count=1), encoding='utf-8')
     sw.write_text(COI_PRELUDE.replace('__COI_PAGES_JSON__', json.dumps(coi_pages)) + sw.read_text(encoding='utf-8'), encoding='utf-8')
     # offline: pages stored without their query (?inkdos-theme=) still answer for it, and the files the project's
     # worker leaves to the network (OCR data and other extensions it does not list) are kept the same way as pages
