@@ -2,6 +2,11 @@
 
 Changes to InkDOS-tools, newest first.
 
+## 2026-10-10 · Plain scrollbar
+
+- The Up / Down buttons and the "← InkDOS" button are gone from the toolkit pages InkDOS opens; they show a plain
+  scrollbar at the side instead, always visible (XeOS desktop mode is used with a mouse). Owner request.
+
 ## 2026-10-10 · BentoPDF start page back to the original
 
 - The one-line grouped tool list (viewers/bento-list.js) is no longer added: BentoPDF shows its original start page
