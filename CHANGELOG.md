@@ -2,6 +2,12 @@
 
 Changes to InkDOS-tools, newest first.
 
+## 2026-10-10 · Fast deploys for small changes
+
+- A push that changes only files the build copies as they are (site-src/viewers, skins, diag) or documentation now
+  updates the published site in place, in a minute or two, instead of rebuilding every tool (about ten minutes).
+  Any other change, a manual run or a first push still builds everything. Owner request.
+
 ## 2026-10-10 · Plain scrollbar
 
 - The Up / Down buttons and the "← InkDOS" button are gone from the toolkit pages InkDOS opens; they show a plain
