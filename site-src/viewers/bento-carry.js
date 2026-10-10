@@ -1,3 +1,10 @@
+// InkDOS: WebKit (iPhone, iPad, Safari, XeOS) closes a page that uses too much memory, so the tools there draw small
+// thumbnails and compress long documents more lightly (build.py patches read window.__inkdosLowMem); Chromium keeps
+// the original behaviour (owner, 2026-10-10)
+(function () {
+  var ua = navigator.userAgent || '';
+  window.__inkdosLowMem = /AppleWebKit\//.test(ua) && !/(Chrome|Chromium|Edg)\//.test(ua);
+})();
 // InkDOS-tools, BentoPDF pages: "Edit PDF" in the InkDOS PDF workspace frames the toolkit (?embed=1) and hands it the
 // PDF that is open there (viewer protocol, viewers/viewer-embed.js, loaded after this script). The PDF is kept for this
 // frame (IndexedDB 'inkdos-bento-carry' and a flag in this frame's sessionStorage), so whichever tool is chosen next

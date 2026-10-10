@@ -253,7 +253,7 @@ PYMUPDF_EDITS = [
      "  async compressPdf(pdf, options) {\n    const pyodide = await this.getPyodideBase();"),
     ("# Pre-repair: Fix corrupted xrefs before processing\ndoc = repair_pdf(doc)",
      "# Pre-repair only when MuPDF had to repair the file on open\nif doc.is_repaired:\n    doc = repair_pdf(doc)\n"
-     "_big = doc.page_count > 300\n"
+     "_big = doc.page_count > 300 and ${globalThis.__inkdosLowMem ? \"True\" : \"False\"}\n"
      "def _font_bytes():\n"
      "    _total = 0\n"
      "    for _x in range(1, doc.xref_length()):\n"
@@ -356,12 +356,15 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
          "    newRelativePath = pagePathWithoutLang; // InkDOS-tools: no /<lang>/ pages; the language is stored"),
     ])
     # thumbnails: Organize and Delete pages drew every page at full size and every tool kept PNG data URLs, about
-    # +750 MB in WebKit for a 300-page PDF (iPhone pages ran out of memory); thumbnails are now about 200 px wide JPEG
-    thumb = "page.getViewport({ scale: Math.min(1, 200 / page.getViewport({ scale: 1 }).width) })"
+    # +750 MB in WebKit for a 300-page PDF (iPhone pages ran out of memory); there thumbnails are about 200 px wide JPEG
+    # WebKit only (iOS/iPadOS/Safari, flagged by viewers/bento-carry.js as window.__inkdosLowMem); Chromium unchanged
+    low = "(globalThis as any).__inkdosLowMem"
+    thumb = f"({low} ? page.getViewport({{ scale: Math.min(1, 200 / page.getViewport({{ scale: 1 }}).width) }}) : page.getViewport({{ scale: 1 }}))"
     for name in ('organize-pdf-page.ts', 'delete-pages-page.ts'):
         patch(src / 'src/js/logic' / name, [("    const viewport = page.getViewport({ scale: 1 });\n", f"    const viewport = {thumb};\n")])
     for name in ('organize-pdf-page.ts', 'delete-pages-page.ts', 'duplicate-organize.ts', 'split-pdf-page.ts', 'merge-pdf-page.ts'):
-        patch(src / 'src/js/logic' / name, [("img.src = canvas.toDataURL();", "img.src = canvas.toDataURL('image/jpeg', 0.8); canvas.width = canvas.height = 0;")])
+        patch(src / 'src/js/logic' / name, [("img.src = canvas.toDataURL();",
+               f"if ({low}) {{ img.src = canvas.toDataURL('image/jpeg', 0.8); canvas.width = canvas.height = 0; }} else img.src = canvas.toDataURL();")])
     run(['npm', 'ci', '--no-audit', '--no-fund'], src, env={'HUSKY': '0'})
     run(['npx', 'vite', 'build'], src, env=env)
     shutil.copytree(src / 'dist', dest, dirs_exist_ok=True)
