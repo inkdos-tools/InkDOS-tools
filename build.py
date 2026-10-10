@@ -363,7 +363,7 @@ def build_bentopdf(src: Path, dest: Path, tool: dict) -> None:
              if rel not in ('sw.js', OFFLINE_LIST) and not rel.endswith('.map') and not precompressed_copy(dest / rel)]
     files += [{'url': BASE + rel, 'size': 0, 'group': 'pdf'} for rel in
               ('skins/inkdos.css', f"skins/{tool['id']}.css", 'viewers/viewer-theme.js', 'viewers/download-fallback.js',
-               'viewers/file-handoff.js', 'viewers/viewer-embed.js', 'viewers/bento-carry.js', 'viewers/bento-list.js')]
+               'viewers/file-handoff.js', 'viewers/viewer-embed.js', 'viewers/bento-carry.js')]
     offline_list(dest, {'cache': cache.group(1) + '-static', 'worker': base + 'sw.js', 'scope': base, 'files': files})
 
 
@@ -400,9 +400,9 @@ BFCACHE_OFF = "<script>/* InkDOS-tools: no back-forward cache (memory on iPad) *
 DOWNLOAD_PANEL = f'<script src="{BASE}viewers/download-fallback.js"></script>'
 # "Edit PDF" in the InkDOS PDF workspace: the open PDF follows into whichever toolkit page is chosen
 # (site-src/viewers/bento-carry.js; viewer-embed.js after it answers the InkDOS frame)
-# bento-list.js: inside that frame (?embed=1) the tool list is one line per tool, grouped, one group open at a time
-BENTO_CARRY = (f'<script src="{BASE}viewers/bento-carry.js"></script><script src="{BASE}viewers/viewer-embed.js"></script>'
-               f'<script src="{BASE}viewers/bento-list.js"></script>')
+# BentoPDF keeps its original start page (search bar, its own tool layout; owner, 2026-10-10): viewers/bento-list.js
+# (the one-line grouped list) is no longer added to the pages
+BENTO_CARRY = f'<script src="{BASE}viewers/bento-carry.js"></script><script src="{BASE}viewers/viewer-embed.js"></script>'
 
 
 COI_PRELUDE = """// InkDOS-tools: add cross-origin isolation headers to the pages that load LibreOffice WASM and to worker scripts
