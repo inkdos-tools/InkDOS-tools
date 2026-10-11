@@ -252,7 +252,16 @@ PYMUPDF_EDITS = [
     ("  async compressPdf(pdf, options) {\n    const pyodide = await this.getPyodide();",
      "  async compressPdf(pdf, options) {\n    const pyodide = await this.getPyodideBase();"),
     ("# Pre-repair: Fix corrupted xrefs before processing\ndoc = repair_pdf(doc)",
-     "# Pre-repair only when MuPDF had to repair the file on open\nif doc.is_repaired:\n    doc = repair_pdf(doc)\n"
+     "# Pre-repair only when MuPDF had to repair the file on open, or an object cannot be read (a bad xref that\n"
+     "# opens without a repair stops scrub with 'bad xref')\n"
+     "def _xrefs_ok():\n"
+     "    for _x in range(1, doc.xref_length()):\n"
+     "        try:\n"
+     "            doc.xref_object(_x)\n"
+     "        except Exception:\n"
+     "            return False\n"
+     "    return True\n"
+     "if doc.is_repaired or not _xrefs_ok():\n    doc = repair_pdf(doc)\n"
      "_big = doc.page_count > 300 and ${globalThis.__inkdosLowMem ? \"True\" : \"False\"}\n"
      "def _font_bytes():\n"
      "    _total = 0\n"
