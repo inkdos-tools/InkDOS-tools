@@ -222,8 +222,8 @@ def npm_pack(specs: list[str], into: Path) -> list[Path]:
 
 # PyMuPDF engine (BentoPDF Condense compression and others): a 2200-page PDF ran an iPhone page out of memory (gray
 # screen) at about 2.4 GB. The engine now starts with PyMuPDF and fontTools only (numpy, OpenCV, lxml and the Word
-# converters load the first time a tool needs them); compression repairs the file only when MuPDF had to, looks for
-# images only when there are any, and on long documents (over 300 pages) skips the full content clean, the thumbnail
+# converters load the first time a tool needs them); compression always repairs the file first (as upstream), looks
+# for images only when there are any, and on long documents (over 300 pages) skips the full content clean, the thumbnail
 # scrub and font subsetting unless the fonts are a large part of the file; the result comes back through the file
 # system instead of base64. Measured in Chromium on a 15 MB, 2200-page text PDF: about 0.8 GB, twice as fast.
 PYMUPDF_EDITS = [
@@ -252,16 +252,9 @@ PYMUPDF_EDITS = [
     ("  async compressPdf(pdf, options) {\n    const pyodide = await this.getPyodide();",
      "  async compressPdf(pdf, options) {\n    const pyodide = await this.getPyodideBase();"),
     ("# Pre-repair: Fix corrupted xrefs before processing\ndoc = repair_pdf(doc)",
-     "# Pre-repair only when MuPDF had to repair the file on open, or an object cannot be read (a bad xref that\n"
-     "# opens without a repair stops scrub with 'bad xref')\n"
-     "def _xrefs_ok():\n"
-     "    for _x in range(1, doc.xref_length()):\n"
-     "        try:\n"
-     "            doc.xref_object(_x)\n"
-     "        except Exception:\n"
-     "            return False\n"
-     "    return True\n"
-     "if doc.is_repaired or not _xrefs_ok():\n    doc = repair_pdf(doc)\n"
+     "# Pre-repair every file, as upstream does (owner, 2026-10-11): a bad xref that opens without a repair stopped\n"
+     "# scrub with 'bad xref'\n"
+     "doc = repair_pdf(doc)\n"
      "_big = doc.page_count > 300 and ${globalThis.__inkdosLowMem ? \"True\" : \"False\"}\n"
      "def _font_bytes():\n"
      "    _total = 0\n"
