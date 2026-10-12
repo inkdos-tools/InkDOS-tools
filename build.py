@@ -71,20 +71,9 @@ def patch(file: Path, edits: list[tuple[str, str]]) -> None:
     file.write_text(text, encoding='utf-8')
 
 
-def follow_inkdos_theme(page: Path, tool_id: str) -> None:
-    """Load site-src/viewers/tool-theme.js first, so the tool starts in the InkDOS light/dark appearance."""
-    text = page.read_text(encoding='utf-8')
-    tag = f'<script src="../viewers/tool-theme.js" data-tool="{tool_id}"></script>'
-    if tag not in text:
-        if '<head>' not in text:
-            sys.exit(f'{page}: no <head> to load the InkDOS theme script into')
-        page.write_text(text.replace('<head>', '<head>' + tag, 1), encoding='utf-8')
-
-
 def inkdos_skin(page: Path, tool_id: str, theme_script: bool = True) -> None:
     """Give a tool page the InkDOS look: site-src/skins/inkdos.css (InkDOS tokens) and skins/<tool>.css after the
-    tool's own styles; viewers/viewer-theme.js first, so the tokens follow the InkDOS light/dark appearance (tools
-    with their own dark class, IT-Tools and CyberChef, start in that mode through tool-theme.js instead)."""
+    tool's own styles; viewers/viewer-theme.js first, so the tokens follow the InkDOS light/dark appearance."""
     text = page.read_text(encoding='utf-8')
     links = (f'<link rel="stylesheet" href="{BASE}skins/inkdos.css"><link rel="stylesheet" href="{BASE}skins/{tool_id}.css">')
     if links in text:
@@ -97,77 +86,6 @@ def inkdos_skin(page: Path, tool_id: str, theme_script: bool = True) -> None:
 
 
 # ---- builders: one per tool; each writes the tool's static files into `dest` -------------------
-
-def build_archivedrop(src: Path, dest: Path, tool: dict) -> None:
-    app = src / 'ArchiveDrop'
-    # only what the page loads (the repository also vendors the whole Font Awesome distribution)
-    copy_files(app, dest, ['index.html', 'app.js', 'styles.css', 'manifest.json', '1f4e6.png', 'sw.js',
-                           'libarchive.js', 'libarchive.wasm', 'worker-bundle.js', 'css/all.min.css', 'webfonts'])
-    # InkDOS wording: the archive is opened on this device, nothing is uploaded (the upstream text and cloud
-    # icon read as an upload)
-    patch(dest / 'app.js', [
-        ('title: "ArchiveDrop",\n    subtitle: "Estrai', 'title: "Estrai ZIP, RAR e 7z",\n    subtitle: "Estrai'),
-        ('dropText: "Clicca per caricare o trascina qui il file"', 'dropText: "Scegli un archivio o trascinalo qui"'),
-        ('title: "ArchiveDrop",\n    subtitle: "Extract and share files privately, directly in your browser."',
-         'title: "Extract ZIP, RAR and 7z",\n    subtitle: "Archives are opened on this device. Nothing is uploaded."'),
-        ('dropText: "Click to upload or drag the file here"', 'dropText: "Choose an archive or drag it here"'),
-    ])
-    patch(dest / 'index.html', [
-        ('<i class="fa-solid fa-cloud-arrow-up"></i>', '<i class="fa-solid fa-file-zipper"></i>'),
-        ('<title>ArchiveDrop — Unpack & Share</title>', '<title>Extract ZIP, RAR and 7z</title>'),
-    ])
-    inkdos_skin(dest / 'index.html', tool['id'])
-
-
-def build_cyberchef(src: Path, dest: Path, tool: dict) -> None:
-    run(['npm', 'ci', '--no-audit', '--no-fund'], src)
-    run(['npx', 'grunt', 'prod'], src)
-    prod = src / 'build' / 'prod'
-    shutil.copytree(prod, dest, dirs_exist_ok=True)
-    # the standalone page is named CyberChef_v<version>.html; serve it as the tool's index
-    pages = sorted(p for p in dest.glob('CyberChef_v*.html'))
-    if not (dest / 'index.html').exists() and pages:
-        shutil.copy2(pages[0], dest / 'index.html')
-    follow_inkdos_theme(dest / 'index.html', tool['id'])
-    inkdos_skin(dest / 'index.html', tool['id'], theme_script=False)
-    for zipped in dest.glob('*.zip'):
-        zipped.unlink()  # the downloadable standalone bundle duplicates the site
-    (dest / 'BundleAnalyzerReport.html').unlink(missing_ok=True)  # build diagnostics, not part of the app
-
-
-def build_it_tools(src: Path, dest: Path, tool: dict) -> None:
-    # InkDOS colours instead of the IT-Tools green (with skins/it-tools.css for the sidebar header)
-    patch(src / 'src' / 'ui' / 'theme' / 'themes.ts', [
-        ("color: '#18a058',\n      colorHover: '#1ea54c',\n      colorPressed: '#0C7A43',\n      colorFaded: '#18a0582f',",
-         "color: '#2f6fed',\n      colorHover: '#2559c7',\n      colorPressed: '#1e4aa6',\n      colorFaded: '#2f6fed2f',"),
-        ("color: '#1ea54c',\n      colorHover: '#36AD6A',\n      colorPressed: '#0C7A43',\n      colorFaded: '#18a0582f',",
-         "color: '#3f76ee',\n      colorHover: '#5b8ef5',\n      colorPressed: '#2f6fed',\n      colorFaded: '#3f76ee2f',"),
-        ("background: '#1e1e1e',", "background: '#1c222a',"),
-    ])
-    patch(src / 'src' / 'themes.ts', [
-        ("  Layout: { color: '#f1f5f9' },",
-         "  common: {\n    primaryColor: '#2f6fedFF',\n    primaryColorHover: '#2559c7FF',\n    primaryColorPressed: '#1e4aa6FF',\n"
-         "    primaryColorSuppl: '#2559c7FF',\n  },\n\n  Layout: { color: '#f2f5f8' },"),
-        ("    primaryColor: '#1ea54cFF',\n    primaryColorHover: '#36AD6AFF',\n    primaryColorPressed: '#0C7A43FF',\n    primaryColorSuppl: '#36AD6AFF',",
-         "    primaryColor: '#3f76eeFF',\n    primaryColorHover: '#5b8ef5FF',\n    primaryColorPressed: '#2f6fedFF',\n    primaryColorSuppl: '#5b8ef5FF',"),
-        ("    color: '#1c1c1c',\n    siderColor: '#232323',", "    color: '#11161c',\n    siderColor: '#1c222a',"),
-        ("    color: '#232323',\n    borderColor: '#282828',", "    color: '#1c222a',\n    borderColor: '#323c49',"),
-    ])
-    for theme in ('c-select/c-select.theme.ts', 'c-input-text/c-input-text.theme.ts'):
-        patch(src / 'src' / 'ui' / theme, [("backgroundColor: '#1ea54c1a',", "backgroundColor: '#2f6fed1a',"),
-                                           ("    backgroundColor: '#333333',\n    borderColor: '#333333',",
-                                            "    backgroundColor: '#252d37',\n    borderColor: '#323c49',")])
-    patch(src / 'src' / 'ui' / 'c-card' / 'c-card.theme.ts', [
-        ("backgroundColor: '#232323',\n    borderColor: '#282828',", "backgroundColor: '#1c222a',\n    borderColor: '#323c49',"),
-        ("backgroundColor: '#ffffff',\n    borderColor: '#efeff5',", "backgroundColor: '#ffffff',\n    borderColor: '#e3e8ef',"),
-    ])
-    pnpm = ['npx', '-y', 'pnpm@9.11.0']  # the version pinned by the project's packageManager field
-    run(pnpm + ['install', '--frozen-lockfile'], src)
-    run(pnpm + ['run', 'build'], src, env={'BASE_URL': f"{BASE}{tool['id']}/"})
-    shutil.copytree(src / 'dist', dest, dirs_exist_ok=True)
-    follow_inkdos_theme(dest / 'index.html', tool['id'])
-    inkdos_skin(dest / 'index.html', tool['id'], theme_script=False)
-
 
 def build_pnk(src: Path, dest: Path, tool: dict) -> None:
     # needs cargo with the wasm32-unknown-unknown target and wasm-bindgen 0.2.127 on PATH
@@ -635,37 +553,6 @@ PYPI_ORIGINS = ('https://pypi.org', 'https://files.pythonhosted.org')
 CSP_CONNECT_META = '<meta name="inkdos-tools-connect" content="{}">'
 
 
-def build_squoosh(src: Path, dest: Path, tool: dict) -> None:
-    # Squoosh writes root-absolute URLs ("/c/..."); one function maps its output files to URLs, so the tool's
-    # sub-path goes there. Its service worker (offline cache, root scope) is not registered and Google
-    # Analytics is not loaded: InkDOS tools make no network requests.
-    base = f"{BASE}{tool['id']}/"
-    patch(src / 'lib' / 'entry-data-plugin.js', [
-        ("return fileName.replace(/^static\\//, '/');", f"return fileName.replace(/^static\\//, '{base}');"),
-    ])
-    patch(src / 'src' / 'static-build' / 'pages' / 'index' / 'index.tsx', [
-        ('      <link rel="manifest" href="/manifest.json" />\n', ''),
-        ('href="/">', f'href="{base}">'),
-    ])
-    patch(src / 'src' / 'client' / 'initial-app' / 'App' / 'index.tsx', [
-        ("const ROUTE_EDITOR = '/editor';", f"const ROUTE_EDITOR = '{base}editor';"),
-        ('      offliner(this.showSnack);\n', '      // InkDOS-tools: no service worker (offline cache) for this tool\n'),
-    ])
-    patch(src / 'src' / 'client' / 'initial-app' / 'index.tsx', [
-        ("  addEventListener('load', () => {\n    const script = document.createElement('script');\n"
-         "    script.src = 'https://www.google-analytics.com/analytics.js';\n    document.head.appendChild(script);\n  });\n",
-         "  // InkDOS-tools: the Google Analytics script is not loaded\n"),
-    ])
-    run(['npm', 'ci', '--no-audit', '--no-fund'], src, env={'HUSKY': '0'})
-    run(['npm', 'run', 'build'], src)
-    shutil.copytree(src / 'build', dest, dirs_exist_ok=True)
-    for name in ('_headers', '_redirects', 'manifest.json', 'serviceworker.js', 'sw.js', 'sw-bridge.894ac.js'):
-        (dest / name).unlink(missing_ok=True)  # host configuration and the unused offline worker
-    # the page declares no encoding; its inline script has non-ASCII text, so its CSP hash needs UTF-8
-    patch(dest / 'index.html', [('<head>', '<head><meta charset="utf-8">')])
-    inkdos_skin(dest / 'index.html', tool['id'])
-
-
 def build_docx(src: Path, dest: Path, tool: dict) -> None:
     # docx-preview's own build is committed with the pinned release (dist/); it needs JSZip as a global, served
     # next to it from the npm package (MIT, dual-licensed with GPL-3.0). The viewer page is site-src/docx/.
@@ -693,14 +580,10 @@ def build_pptx(src: Path, dest: Path, tool: dict) -> None:
     copy_files(ROOT / 'site-src' / 'pptx', dest, ['index.html', 'viewer.js', 'viewer.css'])
 
 BUILDERS = {
-    'archivedrop': build_archivedrop,
-    'cyberchef': build_cyberchef,
-    'it-tools': build_it_tools,
     'pnk': build_pnk,
     'bentopdf': build_bentopdf,
     'python': build_python,
     'odf': build_odf,
-    'squoosh': build_squoosh,
     'docx': build_docx,
     'pptx': build_pptx,
 }
@@ -710,8 +593,8 @@ BUILDERS = {
 # the tools run entirely in the browser, so nothing may be fetched from or sent to another site (one exception:
 # python/online.html, the terminal the user opens to install packages, may reach PyPI; see page_csp). Inline
 # scripts are allowed only by their exact hash; WebAssembly is allowed, eval() is not. Audited per tool
-# (each one used under this policy without violations): ArchiveDrop, BentoPDF, CyberChef, IT-Tools,
-# Pyodide, WebODF, pnk, Squoosh, docx-preview and pptx-renderer.
+# (each one used under this policy without violations): BentoPDF, Pyodide, WebODF, pnk, docx-preview and
+# pptx-renderer.
 CSP_BASE = ("default-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self' data:",
             # frame-src also allows the InkDOS origin: a PDF InkDOS hands over as a separate page comes through a hidden
             # InkDOS page (viewers/bento-carry.js)
@@ -764,7 +647,7 @@ def write_index(out: Path, tools: list[dict]) -> None:
     shutil.copytree(ROOT / 'site-src' / 'diag', out / 'diag', dirs_exist_ok=True)
     (out / '.nojekyll').write_text('', encoding='utf-8')
     # GitHub Pages serves one 404 page per site: send a deep link inside a tool (single-page apps with
-    # history routing, e.g. IT-Tools) back to that tool's start page instead of a dead end
+    # history routing) back to that tool's start page instead of a dead end
     ids = json.dumps([t['id'] for t in tools])
     (out / '404.html').write_text(
         '<!doctype html><head><meta charset="utf-8"><title>InkDOS tools</title></head>\n'
