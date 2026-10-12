@@ -1,6 +1,6 @@
 /* InkDOS look for the advanced tools: the tokens of the InkDOS Home (assets/home.css), light and dark.
-   html[data-theme] is set by viewers/viewer-theme.js from the InkDOS appearance; html.dark is the class
-   IT-Tools and CyberChef put on <html> for their own dark mode (tool-theme.js starts them in the same mode). */
+   html[data-theme] is set by viewers/viewer-theme.js from the InkDOS appearance; html.dark is the class a tool
+   may put on <html> for its own dark mode. */
 :root{--ink-bg:#f2f5f8;--ink-card:#fff;--ink-text:#192235;--ink-text-2:#3a4556;--ink-muted:#697486;--ink-subtle:#8a94a3;
   --ink-border:#e3e8ef;--ink-border-strong:#d5dbe4;--ink-hover:#f5f7fa;--ink-field:#f5f7fa;
   --ink-accent:#2f6fed;--ink-accent-hover:#2559c7;--ink-accent-pressed:#1e4aa6;--ink-accent-soft:#e8effd;--ink-accent-text:#fff;

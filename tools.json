@@ -2,39 +2,6 @@
   "base": "/InkDOS-tools/",
   "tools": [
     {
-      "id": "archivedrop",
-      "name": "ArchiveDrop",
-      "title": "Extract ZIP, RAR and 7z",
-      "group": "Files",
-      "description": "Open ZIP, RAR and 7z archives and save the files inside.",
-      "repo": "https://github.com/R0mb0/ArchiveDrop",
-      "ref": "e2a8bc405f3c896f7820665b99e95047cadab66e",
-      "license": "MIT",
-      "license_file": "LICENSE"
-    },
-    {
-      "id": "cyberchef",
-      "name": "CyberChef",
-      "title": "CyberChef (data toolbox)",
-      "group": "Developer",
-      "description": "Encode, decode, hash, encrypt, compress and analyse data with hundreds of operations.",
-      "repo": "https://github.com/gchq/CyberChef",
-      "ref": "58c1c599daa3c4ce3c6bff3aea4a47afb4e46040",
-      "license": "Apache-2.0",
-      "license_file": "LICENSE"
-    },
-    {
-      "id": "it-tools",
-      "name": "IT-Tools",
-      "title": "IT-Tools (developer utilities)",
-      "group": "Developer",
-      "description": "Formatters, converters, generators and network helpers for developers (JSON, YAML, UUID, JWT, regex and more).",
-      "repo": "https://github.com/CorentinTh/it-tools",
-      "ref": "e888ce21ad039bf4c74f95165bdcf1a713a1a956",
-      "license": "GPL-3.0",
-      "license_file": "LICENSE"
-    },
-    {
       "id": "pnk",
       "name": "pnk",
       "title": "Apple Pages, Numbers and Keynote viewer",
@@ -77,17 +44,6 @@
       "ref": "999917d0df55abde6d2119ea4d584ccb6039694e",
       "license": "AGPL-3.0",
       "license_file": "AGPL-3.0.txt"
-    },
-    {
-      "id": "squoosh",
-      "name": "Squoosh",
-      "title": "Image converter and compressor",
-      "group": "Images",
-      "description": "Convert images between JPG, PNG, WebP and AVIF, resize them and make them smaller, comparing before and after.",
-      "repo": "https://github.com/GoogleChromeLabs/squoosh",
-      "ref": "e8d35e0fb66eb16eff6fe8fc773eabcbb7128de3",
-      "license": "Apache-2.0",
-      "license_file": "LICENSE"
     },
     {
       "id": "docx",
