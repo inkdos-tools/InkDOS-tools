@@ -80,6 +80,20 @@
   }).catch(function () {});
 })();
 
+// InkDOS: on a toolkit page opened from the InkDOS PDF tools page, "Back to Tools" returns to that page instead of the
+// BentoPDF start page (owner, 2026-10-12). InkDOS keeps its tools page open under the tool, so the browser's Back shows it.
+(function () {
+  'use strict';
+  var INKDOS = 'https://vfydr2m9wk-ops.github.io/', back = '';
+  try { back = sessionStorage.getItem('inkdos-return') || ''; } catch (_) {}
+  if (back.indexOf(INKDOS) !== 0) return;
+  document.addEventListener('click', function (event) {
+    if (!event.target || !event.target.closest || !event.target.closest('#back-to-tools')) return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    if (document.referrer.indexOf(INKDOS) === 0 && history.length > 1) history.back(); else location.href = back;
+  }, true);
+})();
+
 // InkDOS: on the toolkit pages InkDOS opens, a plain scrollbar always shown at the side (owner, 2026-10-10: in the XeOS
 // desktop mode the page is scrolled with the mouse; WebKit otherwise hides the scrollbar until it scrolls)
 (function () {
