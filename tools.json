@@ -1,0 +1,64 @@
+{
+  "tools": [
+    {
+      "id": "pnk",
+      "name": "pnk",
+      "title": "Apple Pages, Numbers and Keynote viewer",
+      "group": "View",
+      "description": "View .pages, .numbers and .key files in the browser (view only, no conversion).",
+      "repo": "https://github.com/peterheb/pnk",
+      "license": "MIT OR Apache-2.0",
+      "href": "pnk/"
+    },
+    {
+      "id": "bentopdf",
+      "name": "BentoPDF",
+      "title": "PDF toolkit",
+      "group": "PDF",
+      "description": "Merge, split, compress, convert, OCR, edit and protect PDFs; Word, Excel, PowerPoint and LibreOffice files to PDF, all in the browser.",
+      "repo": "https://github.com/alam00000/bentopdf",
+      "license": "AGPL-3.0",
+      "href": "bentopdf/"
+    },
+    {
+      "id": "python",
+      "name": "Pyodide",
+      "title": "Python terminal (Pyodide)",
+      "group": "Developer",
+      "description": "A Python 3 console with numpy, pandas, matplotlib, scipy, openpyxl and more, running entirely in the browser; open and save files.",
+      "repo": "https://github.com/pyodide/pyodide",
+      "license": "MPL-2.0",
+      "href": "python/"
+    },
+    {
+      "id": "odf",
+      "name": "WebODF",
+      "title": "OpenDocument viewer",
+      "group": "View",
+      "description": "View LibreOffice / OpenDocument files (.odt, .ods, .odp), view only.",
+      "repo": "https://github.com/kogmbh/WebODF",
+      "license": "AGPL-3.0",
+      "href": "odf/"
+    },
+    {
+      "id": "docx",
+      "name": "docx-preview",
+      "title": "Word document viewer",
+      "group": "View",
+      "description": "View .docx files with their page layout, headers, footers, tables and images (view only).",
+      "repo": "https://github.com/VolodymyrBaydalka/docxjs",
+      "license": "Apache-2.0",
+      "href": "docx/"
+    },
+    {
+      "id": "pptx",
+      "name": "pptx-renderer",
+      "title": "PowerPoint viewer",
+      "group": "View",
+      "description": "View .pptx slides with their layout, shapes, charts and images (view only).",
+      "repo": "https://github.com/aiden0z/pptx-renderer",
+      "license": "Apache-2.0",
+      "href": "pptx/"
+    }
+  ]
+}

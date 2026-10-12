@@ -1,0 +1,4 @@
+pptx-renderer
+https://github.com/aiden0z/pptx-renderer
+commit 0cf5c194b4db2cf9f2531b6a7e24a61338caabf1
+license Apache-2.0
